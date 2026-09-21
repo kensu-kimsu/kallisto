@@ -797,6 +797,16 @@ For the original implementation and documentation, visit:
 
 **Experiment setup:** Active  
 **Mode:** Simulation only  
+## Current Experiment Performance
+
+![Portfolio Performance](docs/results/equity_comparison.png)
+
+### Drawdown
+
+![Portfolio Drawdown](docs/results/drawdown_comparison.png)
+
+> Results shown above are generated from the simulated experiment and will be updated as new NYSE sessions are processed.
+
 **Location:** Australia  
 **Starting capital:** $1,000 per portfolio  
 **Strategies:** Microcap Growth vs Nasdaq Titan Growth  
