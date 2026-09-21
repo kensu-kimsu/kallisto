@@ -4,6 +4,7 @@ import csv
 import math
 from pathlib import Path
 from datetime import datetime, timedelta
+from user_side.personal_experiment.github_sync import commit_and_push
 
 from openai import OpenAI
 import pandas_market_calendars as mcal
@@ -1568,25 +1569,36 @@ def main():
                 f"open progress chart: {exc}"
             )
 
-    # Open projection chart only once enough
+        # Open projection chart only once enough
     # weekly history exists to create it.
     if (
         projection_file is not None
-        and Path(
-            projection_file
-        ).exists()
+        and Path(projection_file).exists()
     ):
         try:
             os.startfile(
-                Path(
-                    projection_file
-                ).resolve()
+                Path(projection_file).resolve()
             )
         except Exception as exc:
             print(
                 f"Could not automatically "
                 f"open projection chart: {exc}"
             )
+
+    print()
+    print(
+        "Syncing experiment progress to GitHub..."
+    )
+
+    github_ok = commit_and_push(
+        str(run_date)
+    )
+
+    if not github_ok:
+        print(
+            "\nWARNING: Experiment completed successfully, "
+            "but GitHub synchronization did not complete."
+        )
 
     print()
     print("=" * 60)
