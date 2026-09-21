@@ -78,3 +78,20 @@ Thumbs.db
 *.pem
 *.key
 *.crt
+# ======================
+# Additional secret safety
+# ======================
+secrets/
+api_keys*
+credentials*
+*.secret
+
+# Local experiment backups
+*_before_*.py
+README_partial_backup.md
+
+# ======================
+# Generated / temporary experiment artifacts
+# ======================
+user_side/personal_experiment/dry_run_output/
+user_side/personal_experiment/reporting/output/*.png

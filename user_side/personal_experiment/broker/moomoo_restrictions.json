@@ -1,0 +1,8 @@
+{
+  "broker": "Moomoo Australia",
+  "blocked_for_new_positions": [],
+  "notes": {
+    "purpose": "Symbols manually confirmed in Moomoo as unavailable, reduce-only, or otherwise blocked for opening new positions.",
+    "important": "This file does NOT automatically know Moomoo restrictions. Update it when the Moomoo app shows a restriction."
+  }
+}

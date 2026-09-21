@@ -1,0 +1,4 @@
+logged_at_utc,run_date,experiment,run_type,model,input_tokens,output_tokens,total_tokens,input_cost_usd,output_cost_usd,total_cost_usd,cumulative_cost_usd
+2026-09-21T07:07:20.909795+00:00,TEST,api_test,test,gpt-5.6-luna,13,8,21,0.000003,0.000010,0.000012,0.000012
+2026-09-21T07:28:50.597569+00:00,2026-09-18,microcap,weekly,gpt-5.6-terra,2929,1006,3935,0.005858,0.012072,0.017930,0.017942
+2026-09-21T07:30:05.408577+00:00,2026-09-18,titans,weekly,gpt-5.6-terra,1808,730,2538,0.003616,0.008760,0.012376,0.030318

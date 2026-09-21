@@ -1,0 +1,42 @@
+<ANALYSIS_BLOCK>
+The portfolio is entirely in cash with no existing-position decisions required. The eligible universe is highly speculative overall: many candidates have very low prices, very small market capitalizations, and unusually high current trading volume, which can indicate strong liquidity but also elevated volatility and gap risk.
+
+Two candidates offer comparatively favorable liquidity characteristics for a controlled aggressive allocation. REFR has exceptionally elevated volume relative to its reported average volume (roughly 59 times), supporting executable share liquidity, though its small market capitalization and sub-$1 price warrant a defined stop. CAN has a substantially larger reported market capitalization than most listed candidates, high absolute volume, and current volume above average. The supplied macro context includes a reported Bitcoin breakout, but no company-specific connection or catalyst is assumed.
+
+The proposed entries use limit prices at supplied prices, retain a small cash reserve, and place protective stops below entry. The positions remain high risk because microcap securities can move sharply and stops may execute below their stated levels during gaps or rapid declines. Higher-rate expectations also create a less favorable broad backdrop for speculative equities.
+</ANALYSIS_BLOCK>
+
+<ORDERS_JSON>
+{
+  "orders": [
+    {
+      "action": "b",
+      "ticker": "REFR",
+      "shares": 1000,
+      "order_type": "LIMIT",
+      "limit_price": 0.65,
+      "time_in_force": "DAY",
+      "date": "2026-09-21",
+      "stop_loss": 0.52,
+      "rationale": "Exceptionally high current volume relative to reported average volume supports liquidity for a tightly risk-controlled microcap entry.",
+      "confidence": 0.67
+    },
+    {
+      "action": "b",
+      "ticker": "CAN",
+      "shares": 900,
+      "order_type": "LIMIT",
+      "limit_price": 0.37,
+      "time_in_force": "DAY",
+      "date": "2026-09-21",
+      "stop_loss": 0.30,
+      "rationale": "High absolute trading volume, current volume above average, and comparatively larger reported market capitalization support a liquid speculative allocation.",
+      "confidence": 0.66
+    }
+  ]
+}
+</ORDERS_JSON>
+
+<CONFIDENCE_LVL>
+0.66
+</CONFIDENCE_LVL>

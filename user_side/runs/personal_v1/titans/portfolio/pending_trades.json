@@ -1,0 +1,17 @@
+{
+  "orders": [
+    {
+      "action": "b",
+      "ticker": "NVDA",
+      "shares": 4,
+      "order_type": "LIMIT",
+      "limit_price": 222.27,
+      "time_in_force": "DAY",
+      "date": "2026-09-21",
+      "stop_loss": 200.0,
+      "rationale": "Highly liquid eligible AI semiconductor leader; supplied macro news indicates AI-related demand is supporting chipmakers. Limit total is within available cash and stop controls downside.",
+      "confidence": 0.67,
+      "company_name": "NVIDIA Corporation"
+    }
+  ]
+}

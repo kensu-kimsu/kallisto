@@ -1,0 +1,62 @@
+{
+  "experiment": {
+    "starting_capital_each": 1000.0,
+    "portfolio_count": 2,
+    "benchmarks": [
+      "S&P 500",
+      "Nasdaq-100"
+    ]
+  },
+  "microcap_growth": {
+    "strategy": "Microcap Growth",
+    "status": "ok",
+    "start_date": "2026-09-18",
+    "end_date": "2026-09-18",
+    "starting_equity": 1000.0,
+    "ending_equity": 1000.0,
+    "profit_loss": 0.0,
+    "total_return_pct": 0.0,
+    "annualised_volatility_pct": null,
+    "sharpe_estimate": null,
+    "max_drawdown_pct": 0.0
+  },
+  "nasdaq_titan_growth": {
+    "strategy": "Nasdaq Titan Growth",
+    "status": "ok",
+    "start_date": "2026-09-18",
+    "end_date": "2026-09-18",
+    "starting_equity": 1000.0,
+    "ending_equity": 1000.0,
+    "profit_loss": 0.0,
+    "total_return_pct": 0.0,
+    "annualised_volatility_pct": null,
+    "sharpe_estimate": null,
+    "max_drawdown_pct": 0.0
+  },
+  "sp500": {
+    "strategy": "S&P 500",
+    "status": "ok",
+    "start_date": "2026-09-18",
+    "end_date": "2026-09-18",
+    "starting_value": 1000.0,
+    "ending_value": 1000.0,
+    "profit_loss": 0.0,
+    "total_return_pct": 0.0,
+    "annualised_volatility_pct": null,
+    "sharpe_estimate": null,
+    "max_drawdown_pct": 0.0
+  },
+  "nasdaq100": {
+    "strategy": "Nasdaq-100",
+    "status": "ok",
+    "start_date": "2026-09-18",
+    "end_date": "2026-09-18",
+    "starting_value": 1000.0,
+    "ending_value": 1000.0,
+    "profit_loss": 0.0,
+    "total_return_pct": 0.0,
+    "annualised_volatility_pct": null,
+    "sharpe_estimate": null,
+    "max_drawdown_pct": 0.0
+  }
+}
