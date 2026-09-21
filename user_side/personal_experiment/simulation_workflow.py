@@ -6,6 +6,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from user_side.personal_experiment.github_sync import commit_and_push
 
+
 from openai import OpenAI
 import pandas_market_calendars as mcal
 
@@ -31,7 +32,9 @@ from user_side.personal_experiment.market_data.microcap_screener import (
 from user_side.personal_experiment.market_data.titan_screener import (
     get_titan_universe,
 )
-
+from user_side.personal_experiment.daily_journal import (
+    create_daily_journal,
+)
 
 RUN_ROOT = Path("user_side/runs/personal_v1")
 
@@ -1569,7 +1572,7 @@ def main():
                 f"open progress chart: {exc}"
             )
 
-        # Open projection chart only once enough
+    # Open projection chart only once enough
     # weekly history exists to create it.
     if (
         projection_file is not None
@@ -1586,6 +1589,14 @@ def main():
             )
 
     print()
+    print(
+        "Creating daily GitHub journal..."
+    )
+
+    create_daily_journal(
+        run_date,
+        next_session,
+    )
     print(
         "Syncing experiment progress to GitHub..."
     )
