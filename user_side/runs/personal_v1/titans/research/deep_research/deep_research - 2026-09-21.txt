@@ -1,0 +1,15 @@
+<ANALYSIS_BLOCK>
+The portfolio is fully invested in 4 shares of NVDA, with only $22.01 cash available. NVDA is highly liquid, has the largest supplied market capitalization, and is supported by the supplied report of an AI-stock rally. However, the position represents essentially the entire portfolio, creating substantial single-stock and semiconductor concentration risk. The existing $200.00 stop-loss provides downside control below the supplied $227.38 market price and should remain in place.
+
+No additional purchase is feasible with the available cash, since every eligible candidate costs substantially more than $22.01 per share. Although several candidates are liquid and large-cap, the supplied information does not justify selling NVDA and reallocating into another concentrated position. Holding the current position and cash is therefore preferable to forcing a trade. No order is submitted for the next session.
+</ANALYSIS_BLOCK>
+
+<ORDERS_JSON>
+{
+  "orders": []
+}
+</ORDERS_JSON>
+
+<CONFIDENCE_LVL>
+0.82
+</CONFIDENCE_LVL>

@@ -1,1 +1,2 @@
 date,ticker,action,order_type,shares,limit_price,executed_price,stop_loss,cost_basis,PnL,rationale,confidence,status,reason
+2026-09-21,NVDA,BUY,LIMIT,4,222.27,244.49700000000004,200.0,977.99,,Highly liquid eligible AI semiconductor leader; supplied macro news indicates AI-related demand is supporting chipmakers. Limit total is within available cash and stop controls downside.,0.67,FILLED,
