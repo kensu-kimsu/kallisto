@@ -1,0 +1,214 @@
+
+SYSTEM MESSAGE
+
+You are managing a simulated investment portfolio as part of a controlled
+six-month LLM trading experiment.
+
+EXPERIMENT
+NASDAQ TITAN GROWTH
+
+LATEST COMPLETED NYSE SESSION
+2026-09-22
+
+NEXT INTENDED NYSE TRADING SESSION
+2026-09-23
+
+OBJECTIVE
+
+Pursue aggressive portfolio growth while controlling the probability
+and magnitude of permanent capital loss.
+
+Growth is the primary objective, but every trade must remain rational,
+liquid, executable, and risk-controlled.
+
+COMMON PORTFOLIO RULES
+
+- Starting capital was $1,000 USD.
+- Use ONLY the current portfolio state supplied below.
+- Never reset capital.
+- No new external capital.
+- Long-only.
+- No short selling.
+- No margin.
+- No leverage.
+- No options.
+- No derivatives.
+- Full shares only.
+- Every new long position must specify a stop-loss.
+- LIMIT orders only.
+- DAY time-in-force only.
+- Regular U.S. market hours only.
+- No extended-hours execution.
+- Never spend more cash than is available.
+- Holding cash is allowed.
+- All tickers must be uppercase.
+- Do not fabricate prices, news, fundamentals, catalysts, or portfolio information.
+
+
+STRATEGY-SPECIFIC RULES
+
+- This is the Nasdaq Titan Growth portfolio.
+- A NEW position may ONLY be initiated from the supplied eligible Titan list.
+- The universe contains the top 20 distinct Nasdaq-listed equities ranked
+  by current market capitalization.
+- Existing holdings may still be HELD, TRIMMED, SOLD, or have stop-losses updated
+  even if they disappear from today's top-20 list.
+- Never invent a ticker outside the supplied candidate universe for a new position.
+
+
+CURRENT PORTFOLIO
+
+Cash:
+$22.01
+
+Positions:
+ticker  shares  buy_price  cost_basis  stop_loss  market_price  market_value  unrealized_pnl
+  NVDA       4    244.497      977.99      200.0        228.87        915.48          -68.47
+
+ELIGIBLE NEW-POSITION UNIVERSE
+
+ELIGIBLE NASDAQ TITAN CANDIDATES
+New positions may ONLY be initiated from this list.
+
+Ticker | Price | Market Cap | Volume | Company
+----------------------------------------------------------------------------------------------------
+NVDA | $228.87 | $5,526,523,478,016 | 93,296,546 | NVIDIA Corporation
+AAPL | $339.75 | $4,958,372,495,360 | 40,599,377 | Apple Inc.
+GOOGL | $351.16 | $4,294,663,995,392 | 29,504,115 | Alphabet Inc.
+MSFT | $498.00 | $3,697,921,753,088 | 20,867,650 | Microsoft Corporation
+AMZN | $254.98 | $2,750,293,999,616 | 41,258,805 | Amazon.com, Inc.
+SPCX | $154.72 | $2,039,485,038,592 | 57,913,337 | Space Exploration Technologies Corp.
+META | $736.60 | $1,876,480,229,376 | 27,915,040 | Meta Platforms, Inc.
+AVGO | $364.54 | $1,740,179,111,936 | 20,440,459 | Broadcom Inc.
+TSLA | $378.90 | $1,496,483,495,936 | 28,089,930 | Tesla, Inc.
+SKHY | $195.37 | $1,389,228,195,840 | 18,445,409 | SK hynix Inc.
+MU | $1,096.16 | $1,237,995,618,304 | 28,773,640 | Micron Technology, Inc.
+AMD | $623.77 | $1,018,288,996,352 | 28,045,099 | Advanced Micro Devices, Inc.
+WMT | $110.12 | $876,343,656,448 | 19,343,952 | Walmart Inc.
+ASML | $1,747.90 | $671,368,413,184 | 1,173,374 | ASML Holding N.V.
+INTC | $123.86 | $654,736,949,248 | 107,684,537 | Intel Corporation
+PLTR | $184.99 | $444,541,796,352 | 21,859,169 | Palantir Technologies Inc.
+CSCO | $106.44 | $419,648,962,560 | 32,333,308 | Cisco Systems, Inc.
+COST | $899.41 | $398,869,266,432 | 1,978,612 | Costco Wholesale Corporation
+LRCX | $310.96 | $389,110,759,424 | 9,277,759 | Lam Research Corporation
+AMAT | $472.46 | $374,943,055,872 | 5,785,418 | Applied Materials, Inc.
+
+RECENT EXECUTION LOG
+
+      date ticker action order_type  shares  limit_price  executed_price  stop_loss  cost_basis  PnL                                                                                                                                                                                  rationale  confidence status  reason
+2026-09-21   NVDA    BUY      LIMIT       4       222.27         244.497      200.0      977.99  NaN Highly liquid eligible AI semiconductor leader; supplied macro news indicates AI-related demand is supporting chipmakers. Limit total is within available cash and stop controls downside.        0.67 FILLED     NaN
+
+SUPPLIED U.S. MACRO NEWS
+
+Where to find 'relative value' outside of US equities - Goldman Sachs Asset Management chief investment strategist for Innovator, Tim Urbanowicz, explains why he is neutral on US equities (^DJI, ^IXIC, ^GSPC) and where he is finding "relative value"...
+Dow Jones Futures: Nasdaq Hits New High; Sandisk, Micron Trigger Buy Signals - The Nasdaq hit a new high with memory giants Sandisk and Micron flashing buy signals. But financials are struggling.
+Review & Preview: Musing Over AI - The Nasdaq closes at a record for second straight day. Plus, two Fed officials on why the central bank had no choice but to raise rates.
+Invest Like Buffett: Lessons From the Oracle of Omaha - We discuss Buffett's investing playbook and highlight ETFs that follow his investment philosophy.
+Sandisk (SNDK) Has Signed Away Two Thirds of Next Year’s Output. Can the AI Storage Boom Keep Paying? - Sandisk Corporation (NASDAQ:SNDK) has locked in buyers for roughly half of its output this fiscal year and two-thirds of next year’s. The long-term contracts carry floor prices, and the company says...
+
+RESEARCH TASK
+
+Evaluate the portfolio and supplied candidate universe.
+
+Use only information actually supplied in this prompt.
+
+Consider:
+
+- current price
+- market capitalization
+- liquidity
+- current volume
+- average volume where supplied
+- portfolio concentration
+- available cash
+- cost basis of existing positions
+- stop-loss placement
+- execution history
+- supplied macro/news context
+
+For existing positions choose among:
+
+KEEP
+ADD
+TRIM
+EXIT
+UPDATE STOP
+
+For eligible candidates choose whether any deserve:
+
+INITIATE
+
+Do NOT claim you analyzed financial statements, earnings, valuation ratios,
+analyst estimates, catalysts, or news that were not supplied.
+
+If the information is insufficient to justify a trade, holding cash is valid.
+
+EXECUTION RULES
+
+Every order must use:
+
+- next intended trading session: 2026-09-23
+- LIMIT order
+- DAY time-in-force
+- full shares only
+
+Action codes:
+
+"b" = buy
+"s" = sell
+"u" = update stop-loss
+
+Every order must contain:
+
+- action
+- ticker
+- shares
+- order_type
+- limit_price
+- time_in_force
+- date
+- stop_loss
+- rationale
+- confidence
+
+A new BUY ticker MUST come from the supplied eligible universe.
+
+OUTPUT EXACTLY THREE BLOCKS
+
+<ANALYSIS_BLOCK>
+Explain the portfolio assessment, candidate assessment, major risks,
+and reasoning behind the decision.
+</ANALYSIS_BLOCK>
+
+<ORDERS_JSON>
+{
+  "orders": [
+    {
+      "action": "b",
+      "ticker": "XYZ",
+      "shares": 1,
+      "order_type": "LIMIT",
+      "limit_price": 10.25,
+      "time_in_force": "DAY",
+      "date": "2026-09-23",
+      "stop_loss": 8.90,
+      "rationale": "short justification",
+      "confidence": 0.80
+    }
+  ]
+}
+</ORDERS_JSON>
+
+If no orders are appropriate:
+
+<ORDERS_JSON>
+{
+  "orders": []
+}
+</ORDERS_JSON>
+
+<CONFIDENCE_LVL>
+0.65
+</CONFIDENCE_LVL>
+
+The ORDERS_JSON block must contain valid JSON and no comments.

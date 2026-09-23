@@ -1,3 +1,17 @@
 {
-  "orders": []
+  "orders": [
+    {
+      "action": "b",
+      "ticker": "ZEO",
+      "shares": 1400,
+      "order_type": "LIMIT",
+      "limit_price": 0.49,
+      "time_in_force": "DAY",
+      "date": "2026-09-23",
+      "stop_loss": 0.35,
+      "rationale": "Speculative, liquidity-focused entry based on the supplied current volume, price, and market capitalization; position size is limited and a defined stop controls downside.",
+      "confidence": 0.61,
+      "company_name": "Zeo Energy Corp."
+    }
+  ]
 }

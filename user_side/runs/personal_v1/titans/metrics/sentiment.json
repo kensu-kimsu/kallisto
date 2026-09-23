@@ -16,5 +16,14 @@
     "token_count": 73,
     "report_type": "Daily_Research",
     "date": "2026-09-21"
+  },
+  {
+    "subjectivity": 0.14432989541927943,
+    "polarity": 0.14285713265306196,
+    "positive_count": 8,
+    "negative_count": 6,
+    "token_count": 97,
+    "report_type": "Daily_Research",
+    "date": "2026-09-22"
   }
 ]
