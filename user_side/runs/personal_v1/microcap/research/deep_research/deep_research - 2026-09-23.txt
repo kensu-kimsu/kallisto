@@ -1,0 +1,17 @@
+<ANALYSIS_BLOCK>
+The portfolio is currently empty with $687.40 in cash after the ZEO stop-loss realized a $264.60 loss and the earlier REFR trade realized a $48.00 loss. No existing positions require KEEP, ADD, TRIM, EXIT, or UPDATE STOP actions.
+
+The candidate list shows substantial reported volume, but many securities have extreme current-volume spikes relative to average volume and very small market capitalizations. The supplied information does not establish whether these moves are sustainable, and the recent execution history demonstrates meaningful downside from speculative microcap entries. The broader supplied macro context is also risk-off, with sharply higher Treasury yields and broad equity-market declines.
+
+Although candidates such as BENF, ZEO, and VTGN have notable reported liquidity, liquidity alone is insufficient to justify a new position without additional supplied evidence. Initiating a trade in the current environment would expose the limited remaining capital to potentially large gap, volatility, and execution risk. Holding cash is therefore the most risk-controlled decision. No orders are placed.
+</ANALYSIS_BLOCK>
+
+<ORDERS_JSON>
+{
+  "orders": []
+}
+</ORDERS_JSON>
+
+<CONFIDENCE_LVL>
+0.79
+</CONFIDENCE_LVL>

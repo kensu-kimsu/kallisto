@@ -1,0 +1,249 @@
+
+SYSTEM MESSAGE
+
+You are managing a simulated investment portfolio as part of a controlled
+six-month LLM trading experiment.
+
+EXPERIMENT
+MICROCAP GROWTH
+
+LATEST COMPLETED NYSE SESSION
+2026-09-23
+
+NEXT INTENDED NYSE TRADING SESSION
+2026-09-24
+
+OBJECTIVE
+
+Pursue aggressive portfolio growth while controlling the probability
+and magnitude of permanent capital loss.
+
+Growth is the primary objective, but every trade must remain rational,
+liquid, executable, and risk-controlled.
+
+COMMON PORTFOLIO RULES
+
+- Starting capital was $1,000 USD.
+- Use ONLY the current portfolio state supplied below.
+- Never reset capital.
+- No new external capital.
+- Long-only.
+- No short selling.
+- No margin.
+- No leverage.
+- No options.
+- No derivatives.
+- Full shares only.
+- Every new long position must specify a stop-loss.
+- LIMIT orders only.
+- DAY time-in-force only.
+- Regular U.S. market hours only.
+- No extended-hours execution.
+- Never spend more cash than is available.
+- Holding cash is allowed.
+- All tickers must be uppercase.
+- Do not fabricate prices, news, fundamentals, catalysts, or portfolio information.
+
+
+STRATEGY-SPECIFIC RULES
+
+- This is the Microcap Growth portfolio.
+- A NEW position may ONLY be initiated from the supplied eligible microcap list.
+- Eligible candidates are major-U.S.-exchange-listed equities below $300 million market cap.
+- The candidate feed is ranked by trading volume.
+- Existing holdings may still be HELD, TRIMMED, SOLD, or have stop-losses updated
+  even if they disappear from today's candidate list.
+- Never invent a ticker outside the supplied candidate universe for a new position.
+
+
+CURRENT PORTFOLIO
+
+Cash:
+$687.40
+
+Positions:
+No active positions.
+Available cash: $687.40
+This is an empty starting portfolio.
+
+ELIGIBLE NEW-POSITION UNIVERSE
+
+ELIGIBLE MICROCAP CANDIDATES
+New positions may ONLY be initiated from this list.
+
+Ticker | Price | Market Cap | Volume | Avg Volume | Company
+----------------------------------------------------------------------------------------------------
+VTGN | $0.37 | $16,348,455 | 571,847,092 | 12,860,528 | Vistagen Therapeutics, Inc.
+BENF | $2.90 | $44,917,352 | 289,788,648 | 8,533,921 | Beneficient
+GCDT | $0.51 | $6,924,665 | 191,392,758 | 10,138,395 | Green Circle Decarbonize Techno
+BFRG | $0.95 | $17,614,570 | 190,441,878 | 4,184,576 | Bullfrog AI Holdings, Inc.
+CTNT | $0.04 | $121,320 | 184,415,607 | 48,548,754 | Cheetah Net Supply Chain Service Inc.
+MSS | $2.10 | $1,828,131 | 94,772,986 | 4,255,117 | Maison Solutions Inc.
+WHLR | $5.44 | $3,091,067 | 91,896,928 | 1,841,184 | Wheeler Real Estate Investment Trust, Inc.
+CAPS | $0.20 | $4,433,627 | 78,300,476 | 2,565,031 | Capstone Holding Corp.
+ZEO | $0.40 | $36,124,884 | 69,204,014 | 11,410,032 | Zeo Energy Corp.
+EDVA | $0.21 | $1,420,004 | 65,768,302 | 6,081,867 | Endovia Health Sciences, Inc.
+HCTI | $0.91 | $13,342,441 | 53,761,326 | 1,855,509 | Healthcare Triangle, Inc.
+GRML | $11.19 | $35,550,776 | 50,807,265 | 6,215,123 | Greenland Mines Ltd
+DVLT | $0.15 | $146,543,120 | 47,124,126 | 40,329,096 | Datavault AI Inc.
+RITR | $0.08 | $4,751,969 | 46,945,925 | 66,933,964 | Reitar Logtech Holdings Ltd
+ZONE | $0.14 | $72,803,088 | 43,953,775 | 7,411,834 | Zone Frontier Inc.
+SNYR | $0.09 | $1,348,439 | 64,981,505 | 30,681,064 | Synergy CHC Corp.
+RETO | $0.16 | $5,725,191 | 36,410,944 | 16,500,506 | ReTo Eco-Solutions, Inc.
+ONCO | $0.91 | $3,986,275 | 31,143,818 | 1,008,304 | Onconetix, Inc.
+SOS | $0.34 | $6,666,052 | 30,818,809 | 682,346 | SOS Limited
+FRGT | $0.49 | $280,341 | 30,170,724 | 991,529 | Freight Technologies, Inc.
+IMCC | $2.91 | $1,757,410 | 29,205,125 | 2,627,768 | IM Cannabis Corp.
+GLND | $2.91 | $127,254,864 | 27,400,173 | 6,038,635 | Greenland Energy Company
+DCOY | $3.85 | $2,522,462 | 26,569,175 | 2,312,306 | Decoy Therapeutics Inc.
+TRUG | $0.46 | $875,286 | 26,227,833 | 17,744,760 | TruGolf Holdings, Inc.
+IPDN | $5.42 | $3,608,695 | 26,047,678 | 9,848,115 | Professional Diversity Network, Inc.
+LXEH | $1.59 | $3,047,500 | 26,403,517 | 486,510 | Lixiang Education Holding Co., Ltd.
+RKDA | $0.43 | $1,026,323 | 24,986,354 | 518,226 | Arcadia Biosciences, Inc.
+ARTL | $7.31 | $4,004,228 | 24,557,088 | 452,764 | Artelo Biosciences, Inc.
+DCX | $0.07 | $27,553,480 | 23,286,720 | 5,248,496 | Digital Currency X Technology Inc.
+SRFM | $0.88 | $109,289,144 | 21,171,682 | 6,555,456 | Surf Air Mobility Inc.
+ZBAO | $0.10 | $45,209,888 | 20,593,915 | 29,498,287 | Zhibao Technology Inc.
+SES | $0.52 | $194,257,552 | 19,122,793 | 17,066,223 | SES AI Corporation
+GPRO | $1.31 | $270,326,816 | 16,830,042 | 33,440,395 | GoPro, Inc.
+GCTK | $2.03 | $1,620,731 | 16,192,734 | 1,122,104 | GlucoTrack, Inc.
+QNME | $0.84 | $28,884,722 | 16,135,682 | 12,362,510 | Lakeside Holding Limited
+VSA | $3.64 | $10,166,287 | 15,561,827 | 424,792 | VisionSys AI Inc.
+GPUS | $0.17 | $23,649,052 | 15,045,065 | 20,289,268 | Hyperscale Data, Inc.
+COSM | $0.41 | $40,917,692 | 13,189,752 | 6,572,798 | Cosmos Health Inc.
+NCPL | $1.04 | $8,161,814 | 12,887,789 | 18,265,448 | Netcapital Inc.
+JAGX | $8.91 | $4,633,984 | 11,455,441 | 480,108 | Jaguar Health, Inc.
+CDT | $0.13 | $1,847,302 | 11,347,033 | 2,059,545 | CDT Equity Inc.
+INVZ | $0.41 | $121,657,512 | 11,201,623 | 3,461,356 | Innoviz Technologies Ltd.
+HVII | $4.46 | $116,064,064 | 10,513,236 | 233,375 | Hennessy Capital Investment Corp. VII
+FAMI | $0.13 | $4,953,041 | 9,691,693 | 25,738,265 | Farmmi, Inc.
+KIDZ | $2.81 | $2,422,805 | 9,688,315 | 1,203,412 | KIDZ AI Inc.
+PDSB | $0.82 | $59,711,500 | 9,587,252 | 21,205,756 | PDS Biotechnology Corporation
+GIPR | $0.53 | $1,604,441 | 9,561,103 | 14,432,908 | Generation Income Properties, Inc.
+CAN | $0.39 | $282,807,872 | 9,390,852 | 15,849,732 | Canaan Inc.
+BMEA | $1.44 | $104,111,200 | 9,280,782 | 1,434,803 | Biomea Fusion, Inc.
+OLB | $0.21 | $5,085,100 | 9,174,660 | 6,462,567 | The OLB Group, Inc.
+
+RECENT EXECUTION LOG
+
+      date ticker action   order_type  shares  limit_price  executed_price  stop_loss  cost_basis    PnL                                                                                                                                                                   rationale  confidence status                                  reason
+2026-09-21   REFR    BUY        LIMIT    1000         0.65           0.528       0.52       528.0    NaN                                      Exceptionally high current volume relative to reported average volume supports liquidity for a tightly risk-controlled microcap entry.        0.67 FILLED                                     NaN
+2026-09-21    CAN    BUY        LIMIT     900         0.37             NaN       0.30         NaN    NaN                High absolute trading volume, current volume above average, and comparatively larger reported market capitalization support a liquid speculative allocation.        0.66 FAILED limit price of 0.37 not met. (Low: 0.4)
+2026-09-21   REFR   SELL STOPLOSS_MET    1000          NaN           0.480       0.52       480.0  -48.0                                                                                                                                                                         NaN         NaN FILLED                                     NaN
+2026-09-23    ZEO    BUY        LIMIT    1400         0.49           0.539       0.35       754.6    NaN Speculative, liquidity-focused entry based on the supplied current volume, price, and market capitalization; position size is limited and a defined stop controls downside.        0.61 FILLED                                     NaN
+2026-09-23    ZEO   SELL STOPLOSS_MET    1400          NaN           0.350       0.35       490.0 -264.6                                                                                                                                                                         NaN         NaN FILLED                                     NaN
+
+SUPPLIED U.S. MACRO NEWS
+
+Stock market today: Dow, S&P 500, Nasdaq tumble as 10-year Treasury yield surges to 2007 high - Stocks sold off as bond yields surged on inflation worries.
+Looking for consumer and investor sentiment trends? Turn to social media. - Jessica Inskip, StockBrokers.com director of Investor Research, explains to the Market Hang panel how social media algorithms are great for gauging investor sentiment and consumer demand.
+Vanguard Real Estate ETF vs State Street SPDR: Diversification or Cost - Vanguard is more diversified with a higher dividend yield, while State Street's concentrated 30-stock portfolio charges a lower expense ratio.
+Dow Jones Futures Fall After Soaring Yields Hit Stocks, But Palantir Flashes Buy Signal; Trump-Xi On Tap - The stock market fell as Treasury yields skyrocketed and oil prices rose, but Palantir and Palo Alto flashed buy signals.
+Dow, S&P 500, Nasdaq Futures Dip As Bond Yields Bite And Trump-Xi Meet Grabs Spotlight: Why META, MCD, GOOG, U Stocks Are Trending - U.S. markets were keyed into inflationary concerns on Wednesday as the 10-year Treasury yield soared to close at 5.11%, notching its highest level since July 2007.
+
+RESEARCH TASK
+
+Evaluate the portfolio and supplied candidate universe.
+
+Use only information actually supplied in this prompt.
+
+Consider:
+
+- current price
+- market capitalization
+- liquidity
+- current volume
+- average volume where supplied
+- portfolio concentration
+- available cash
+- cost basis of existing positions
+- stop-loss placement
+- execution history
+- supplied macro/news context
+
+For existing positions choose among:
+
+KEEP
+ADD
+TRIM
+EXIT
+UPDATE STOP
+
+For eligible candidates choose whether any deserve:
+
+INITIATE
+
+Do NOT claim you analyzed financial statements, earnings, valuation ratios,
+analyst estimates, catalysts, or news that were not supplied.
+
+If the information is insufficient to justify a trade, holding cash is valid.
+
+EXECUTION RULES
+
+Every order must use:
+
+- next intended trading session: 2026-09-24
+- LIMIT order
+- DAY time-in-force
+- full shares only
+
+Action codes:
+
+"b" = buy
+"s" = sell
+"u" = update stop-loss
+
+Every order must contain:
+
+- action
+- ticker
+- shares
+- order_type
+- limit_price
+- time_in_force
+- date
+- stop_loss
+- rationale
+- confidence
+
+A new BUY ticker MUST come from the supplied eligible universe.
+
+OUTPUT EXACTLY THREE BLOCKS
+
+<ANALYSIS_BLOCK>
+Explain the portfolio assessment, candidate assessment, major risks,
+and reasoning behind the decision.
+</ANALYSIS_BLOCK>
+
+<ORDERS_JSON>
+{
+  "orders": [
+    {
+      "action": "b",
+      "ticker": "XYZ",
+      "shares": 1,
+      "order_type": "LIMIT",
+      "limit_price": 10.25,
+      "time_in_force": "DAY",
+      "date": "2026-09-24",
+      "stop_loss": 8.90,
+      "rationale": "short justification",
+      "confidence": 0.80
+    }
+  ]
+}
+</ORDERS_JSON>
+
+If no orders are appropriate:
+
+<ORDERS_JSON>
+{
+  "orders": []
+}
+</ORDERS_JSON>
+
+<CONFIDENCE_LVL>
+0.65
+</CONFIDENCE_LVL>
+
+The ORDERS_JSON block must contain valid JSON and no comments.
