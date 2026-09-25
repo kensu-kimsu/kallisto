@@ -1,0 +1,17 @@
+<ANALYSIS_BLOCK>
+The portfolio is entirely in cash at $687.40 with no active positions, so there are no existing holdings to keep, trim, exit, or update. Maintaining cash preserves flexibility and avoids introducing stop-loss or concentration risk without stronger supporting information.
+
+The candidate universe contains several highly liquid names by reported current volume, including DCX, RETO, ATCH, GLND, ATYR, and CTNT. However, many show extreme current-volume-to-average-volume discrepancies, very low share prices, or very small market capitalizations. The supplied information does not establish whether the activity is durable, whether execution would be orderly, or whether any company has a sufficiently favorable growth-risk profile. The prior execution history also demonstrates meaningful downside from stop-loss execution, including REFR and ZEO.
+
+GLND has the largest market capitalization among the highest-volume candidates and a $5.35 quoted price, but the available data still does not justify initiating a position without additional information. The macro context describes rising Treasury yields and inflation concerns, which provides no clear supportive reason to accept additional speculative microcap exposure. Because the portfolio is empty and cash is available, holding cash is preferable to forcing a low-confidence trade.
+</ANALYSIS_BLOCK>
+
+<ORDERS_JSON>
+{
+  "orders": []
+}
+</ORDERS_JSON>
+
+<CONFIDENCE_LVL>
+0.78
+</CONFIDENCE_LVL>

@@ -1,0 +1,249 @@
+
+SYSTEM MESSAGE
+
+You are managing a simulated investment portfolio as part of a controlled
+six-month LLM trading experiment.
+
+EXPERIMENT
+MICROCAP GROWTH
+
+LATEST COMPLETED NYSE SESSION
+2026-09-24
+
+NEXT INTENDED NYSE TRADING SESSION
+2026-09-25
+
+OBJECTIVE
+
+Pursue aggressive portfolio growth while controlling the probability
+and magnitude of permanent capital loss.
+
+Growth is the primary objective, but every trade must remain rational,
+liquid, executable, and risk-controlled.
+
+COMMON PORTFOLIO RULES
+
+- Starting capital was $1,000 USD.
+- Use ONLY the current portfolio state supplied below.
+- Never reset capital.
+- No new external capital.
+- Long-only.
+- No short selling.
+- No margin.
+- No leverage.
+- No options.
+- No derivatives.
+- Full shares only.
+- Every new long position must specify a stop-loss.
+- LIMIT orders only.
+- DAY time-in-force only.
+- Regular U.S. market hours only.
+- No extended-hours execution.
+- Never spend more cash than is available.
+- Holding cash is allowed.
+- All tickers must be uppercase.
+- Do not fabricate prices, news, fundamentals, catalysts, or portfolio information.
+
+
+STRATEGY-SPECIFIC RULES
+
+- This is the Microcap Growth portfolio.
+- A NEW position may ONLY be initiated from the supplied eligible microcap list.
+- Eligible candidates are major-U.S.-exchange-listed equities below $300 million market cap.
+- The candidate feed is ranked by trading volume.
+- Existing holdings may still be HELD, TRIMMED, SOLD, or have stop-losses updated
+  even if they disappear from today's candidate list.
+- Never invent a ticker outside the supplied candidate universe for a new position.
+
+
+CURRENT PORTFOLIO
+
+Cash:
+$687.40
+
+Positions:
+No active positions.
+Available cash: $687.40
+This is an empty starting portfolio.
+
+ELIGIBLE NEW-POSITION UNIVERSE
+
+ELIGIBLE MICROCAP CANDIDATES
+New positions may ONLY be initiated from this list.
+
+Ticker | Price | Market Cap | Volume | Avg Volume | Company
+----------------------------------------------------------------------------------------------------
+DCX | $0.06 | $22,635,966 | 512,923,932 | 5,317,926 | Digital Currency X Technology Inc.
+RETO | $0.17 | $5,992,319 | 160,986,879 | 16,762,336 | ReTo Eco-Solutions, Inc.
+ATCH | $0.19 | $29,593,374 | 159,119,321 | 2,163,707 | AtlasClear Holdings, Inc.
+GLND | $5.35 | $233,956,528 | 154,587,975 | 6,124,041 | Greenland Energy Company
+ATYR | $0.34 | $33,114,314 | 128,886,262 | 1,202,525 | aTyr Pharma, Inc.
+CTNT | $0.03 | $101,416 | 97,253,736 | 49,315,450 | Cheetah Net Supply Chain Service Inc.
+TWG | $0.20 | $13,512,209 | 91,111,167 | 1,725,855 | Top Wealth Group Holding Limited
+APUS | $4.92 | $7,424,860 | 87,177,495 | 112,084 | Apimeds Pharmaceuticals US, Inc.
+GCDT | $0.67 | $9,079,308 | 84,910,106 | 10,293,876 | Green Circle Decarbonize Techno
+PFSA | $3.03 | $1,835,349 | 78,826,023 | 1,242,066 | Profusa, Inc.
+PMAX | $1.65 | $2,830,299 | 56,178,196 | 381,690 | Powell Max Limited
+GCTK | $2.58 | $2,059,846 | 51,262,675 | 1,139,603 | GlucoTrack, Inc.
+NCPL | $1.27 | $9,966,832 | 52,343,720 | 18,552,188 | Netcapital Inc.
+STAK | $1.44 | $27,662,902 | 44,639,871 | 3,882,726 | STAK Inc.
+DVLT | $0.15 | $143,883,888 | 42,968,077 | 40,643,265 | Datavault AI Inc.
+GRML | $14.89 | $113,400,632 | 40,354,558 | 6,312,573 | Greenland Mines Ltd
+SNYR | $0.09 | $1,348,439 | 64,981,505 | 30,682,318 | Synergy CHC Corp
+SLGB | $0.33 | $14,845,500 | 34,493,520 | 6,006,812 | Smart Logistics Global Limited
+YMAT | $1.43 | $5,734,447 | 33,524,377 | 858,211 | J-Star Holding Co., Ltd.
+ZBAO | $0.09 | $43,531,996 | 31,114,337 | 29,963,498 | Zhibao Technology Inc.
+FNGR | $0.15 | $11,340,624 | 31,175,821 | 27,562,984 | FingerMotion, Inc.
+SKYQ | $2.91 | $25,705,166 | 28,118,513 | 6,533,655 | Sky Quarry Inc.
+WETO | $1.90 | $2,047,821 | 28,094,641 | 4,373,834 | Wetour Robotics Limited
+TRAW | $0.56 | $8,606,235 | 27,424,591 | 118,233 | Traws Pharma, Inc.
+QCLS | $1.02 | $8,353,634 | 21,589,090 | 4,548,360 | Q/C Technologies, Inc.
+SDST | $0.12 | $1,670,252 | 20,788,903 | 15,774,798 | Stardust Power Inc.
+VTGN | $0.29 | $13,091,188 | 20,019,834 | 13,055,984 | Vistagen Therapeutics, Inc.
+BENF | $1.45 | $22,458,676 | 19,592,349 | 8,669,228 | Beneficient
+UXIN | $1.30 | $285,974,336 | 16,121,381 | 245,331 | Uxin Limited
+SES | $0.53 | $196,485,296 | 14,313,840 | 17,078,080 | SES AI Corporation
+SFIX | $2.21 | $294,871,136 | 14,059,256 | 1,730,538 | Stitch Fix, Inc.
+GPUS | $0.18 | $24,169,412 | 15,697,526 | 18,621,239 | Hyperscale Data, Inc.
+HCWB | $1.99 | $3,654,284 | 13,587,494 | 160,858 | HCW Biologics Inc.
+SOS | $0.39 | $7,606,732 | 15,924,589 | 692,025 | SOS Limited
+GETY | $0.16 | $67,157,952 | 13,622,449 | 4,414,214 | Getty Images Holdings, Inc.
+SPHL | $3.13 | $7,080,001 | 12,931,707 | 296,884 | Springview Holdings Ltd
+VRME | $1.17 | $15,403,279 | 12,432,872 | 2,271,974 | VerifyMe, Inc.
+VBIO | $3.48 | $3,088,809 | 10,586,937 | 436,747 | Valion Bio, Inc.
+PARA | $0.82 | $2,908,592 | 10,530,621 | 208,368 | Banzai International, Inc.
+HVII | $4.46 | $116,064,064 | 10,513,236 | 236,641 | Hennessy Capital Investment Corp. VII
+GPRO | $1.26 | $260,009,024 | 10,402,413 | 33,873,358 | GoPro, Inc.
+SRFM | $0.92 | $113,999,992 | 7,936,722 | 6,529,361 | Surf Air Mobility Inc.
+ENGS | $2.91 | $129,572,224 | 7,748,652 | 1,341,471 | Energys Group Limited
+RIME | $0.17 | $3,610,789 | 7,740,582 | 1,103,130 | Algorhythm Holdings, Inc.
+IFBD | $1.13 | $9,253,090 | 7,664,444 | 7,823 | Infobird Co., Ltd
+MRNO | $0.31 | $24,505,568 | 7,428,696 | 5,716,274 | Murano Global Investments Plc
+EU | $1.22 | $237,022,800 | 7,146,622 | 4,841,776 | enCore Energy Corp.
+CAN | $0.39 | $287,711,616 | 7,125,823 | 15,992,290 | Canaan Inc.
+LDI | $0.66 | $294,123,648 | 6,317,729 | 3,838,823 | loanDepot, Inc.
+CDT | $0.12 | $1,656,957 | 6,551,149 | 2,088,246 | CDT Equity Inc.
+
+RECENT EXECUTION LOG
+
+      date ticker action   order_type  shares  limit_price  executed_price  stop_loss  cost_basis    PnL                                                                                                                                                                   rationale  confidence status                                  reason
+2026-09-21   REFR    BUY        LIMIT    1000         0.65           0.528       0.52       528.0    NaN                                      Exceptionally high current volume relative to reported average volume supports liquidity for a tightly risk-controlled microcap entry.        0.67 FILLED                                     NaN
+2026-09-21    CAN    BUY        LIMIT     900         0.37             NaN       0.30         NaN    NaN                High absolute trading volume, current volume above average, and comparatively larger reported market capitalization support a liquid speculative allocation.        0.66 FAILED limit price of 0.37 not met. (Low: 0.4)
+2026-09-21   REFR   SELL STOPLOSS_MET    1000          NaN           0.480       0.52       480.0  -48.0                                                                                                                                                                         NaN         NaN FILLED                                     NaN
+2026-09-23    ZEO    BUY        LIMIT    1400         0.49           0.539       0.35       754.6    NaN Speculative, liquidity-focused entry based on the supplied current volume, price, and market capitalization; position size is limited and a defined stop controls downside.        0.61 FILLED                                     NaN
+2026-09-23    ZEO   SELL STOPLOSS_MET    1400          NaN           0.350       0.35       490.0 -264.6                                                                                                                                                                         NaN         NaN FILLED                                     NaN
+
+SUPPLIED U.S. MACRO NEWS
+
+Stock market today: Dow, S&P 500, Nasdaq trims losses as hopes of Hormuz deal offset rising bond yields - Inflation fears and rising bond yields outweighed hopes for Middle East diplomacy and for the artificial intelligence boom to continue its run.
+Dow Jones Futures: Market Rally Resilient As Yields, Oil Prices Keep Rising; Tesla Event On Deck - The stock market rallied to close mixed even as yields and oil prices kept rising. Taiwan Semi is a buy. A Tesla Semi event is on tap.
+S&P 500, Dow, Nasdaq Futures Ease As Treasury Yields Continue To Spike — ORCL, META, AKAM, GOOGL, MGM In Focus - Treasury yields resumed their march higher amid inflation concerns.
+What Are Everpure Stock Bulls Not Worried About? - Everpure (P) grew revenue 38% from a year earlier in fiscal Q2 2027, and management expects that pace to last for some time. The stock costs 144.1 times its past year of earnings, against 22.4 for...
+Review & Preview: It’s All About the Yields - The Nasdaq Composite was also flat, ending 0.01% in the green.  Yields for the 10-year Treasury were lingering at their highest level since 2007, while yields for the 7-year note reached their...
+
+RESEARCH TASK
+
+Evaluate the portfolio and supplied candidate universe.
+
+Use only information actually supplied in this prompt.
+
+Consider:
+
+- current price
+- market capitalization
+- liquidity
+- current volume
+- average volume where supplied
+- portfolio concentration
+- available cash
+- cost basis of existing positions
+- stop-loss placement
+- execution history
+- supplied macro/news context
+
+For existing positions choose among:
+
+KEEP
+ADD
+TRIM
+EXIT
+UPDATE STOP
+
+For eligible candidates choose whether any deserve:
+
+INITIATE
+
+Do NOT claim you analyzed financial statements, earnings, valuation ratios,
+analyst estimates, catalysts, or news that were not supplied.
+
+If the information is insufficient to justify a trade, holding cash is valid.
+
+EXECUTION RULES
+
+Every order must use:
+
+- next intended trading session: 2026-09-25
+- LIMIT order
+- DAY time-in-force
+- full shares only
+
+Action codes:
+
+"b" = buy
+"s" = sell
+"u" = update stop-loss
+
+Every order must contain:
+
+- action
+- ticker
+- shares
+- order_type
+- limit_price
+- time_in_force
+- date
+- stop_loss
+- rationale
+- confidence
+
+A new BUY ticker MUST come from the supplied eligible universe.
+
+OUTPUT EXACTLY THREE BLOCKS
+
+<ANALYSIS_BLOCK>
+Explain the portfolio assessment, candidate assessment, major risks,
+and reasoning behind the decision.
+</ANALYSIS_BLOCK>
+
+<ORDERS_JSON>
+{
+  "orders": [
+    {
+      "action": "b",
+      "ticker": "XYZ",
+      "shares": 1,
+      "order_type": "LIMIT",
+      "limit_price": 10.25,
+      "time_in_force": "DAY",
+      "date": "2026-09-25",
+      "stop_loss": 8.90,
+      "rationale": "short justification",
+      "confidence": 0.80
+    }
+  ]
+}
+</ORDERS_JSON>
+
+If no orders are appropriate:
+
+<ORDERS_JSON>
+{
+  "orders": []
+}
+</ORDERS_JSON>
+
+<CONFIDENCE_LVL>
+0.65
+</CONFIDENCE_LVL>
+
+The ORDERS_JSON block must contain valid JSON and no comments.
