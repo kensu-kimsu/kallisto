@@ -1,3 +1,17 @@
 {
-  "orders": []
+  "orders": [
+    {
+      "action": "b",
+      "ticker": "AIFF",
+      "shares": 200,
+      "order_type": "LIMIT",
+      "limit_price": 2.01,
+      "time_in_force": "DAY",
+      "date": "2026-09-28",
+      "stop_loss": 1.6,
+      "rationale": "Exceptionally high current volume relative to reported average volume supports liquidity for a limited speculative microcap entry; defined stop controls downside while retaining cash.",
+      "confidence": 0.62,
+      "company_name": "Firefly Neuroscience, Inc."
+    }
+  ]
 }

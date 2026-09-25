@@ -1,0 +1,32 @@
+<ANALYSIS_BLOCK>
+The portfolio is fully in cash at $687.40 after two recent stop-loss exits, including a large loss in ZEO caused by execution below the stated stop. This demonstrates that microcap stops can gap and are not guaranteed to cap losses at the stop level. Accordingly, a new position should be liquid, modestly sized relative to available cash, and retain substantial cash for risk control.
+
+AIFF stands out on supplied trading data: 141.5 million shares of current volume versus 317,177 average volume, with a $2.01 share price and $31.5 million market capitalization. The unusually high turnover supports better potential executability than many low-priced candidates, while its share price avoids the most extreme sub-dollar dilution and spread risks present in much of the list. However, no company-specific catalyst or fundamental information is supplied, so the allocation is limited to approximately 58% of available cash and uses a defined stop-loss.
+
+Other high-volume names such as CTNT, GPUS, DCX, AXG, and SUGP have substantially lower share prices and/or very small market capitalizations, increasing dilution, reverse-split, spread, and gap-risk concerns. GLND has strong volume but would require a larger dollar commitment per share and does not provide enough additional supplied information to justify a second concurrent position. Macro context is mixed and does not provide a specific basis for broader risk-taking.
+
+Initiate AIFF with a limit order at the supplied price and a stop at $1.60. Retain cash because the recent execution history shows that stop losses may be exceeded in volatile microcaps.
+</ANALYSIS_BLOCK>
+
+<ORDERS_JSON>
+{
+  "orders": [
+    {
+      "action": "b",
+      "ticker": "AIFF",
+      "shares": 200,
+      "order_type": "LIMIT",
+      "limit_price": 2.01,
+      "time_in_force": "DAY",
+      "date": "2026-09-28",
+      "stop_loss": 1.6,
+      "rationale": "Exceptionally high current volume relative to reported average volume supports liquidity for a limited speculative microcap entry; defined stop controls downside while retaining cash.",
+      "confidence": 0.62
+    }
+  ]
+}
+</ORDERS_JSON>
+
+<CONFIDENCE_LVL>
+0.62
+</CONFIDENCE_LVL>
