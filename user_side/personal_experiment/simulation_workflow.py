@@ -947,14 +947,42 @@ def display_orders_for_approval(
 
 def request_manual_approval():
     """
-    Human checkpoint only.
+    Approval checkpoint.
 
-    Y activates the AI recommendation.
-    N aborts without saving pending orders.
+    When AUTO_APPROVE_SIMULATED_ORDERS=true,
+    valid simulated orders are automatically approved.
 
-    The program never substitutes a different
-    investment decision.
+    Hard order validation still happens before this
+    function is called.
     """
+
+    auto_approve = (
+        os.environ.get(
+            "AUTO_APPROVE_SIMULATED_ORDERS",
+            "",
+        )
+        .strip()
+        .lower()
+        in {
+            "1",
+            "true",
+            "yes",
+            "y",
+        }
+    )
+
+    if auto_approve:
+        print()
+        print(
+            f"{GREEN}{BOLD}"
+            "AUTO-APPROVAL ENABLED"
+            f"{RESET}"
+        )
+        print(
+            "Validated simulated AI orders "
+            "will be approved automatically."
+        )
+        return True
 
     while True:
         answer = input(
@@ -979,7 +1007,6 @@ def request_manual_approval():
         print(
             "Please enter Y or N."
         )
-
 
 def run_experiment(
     experiment: str,
