@@ -95,3 +95,4 @@ README_partial_backup.md
 # ======================
 user_side/personal_experiment/dry_run_output/
 user_side/personal_experiment/reporting/output/*.png
+user_side/personal_experiment/reporting/output/four_week_projection.csv
