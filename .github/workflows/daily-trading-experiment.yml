@@ -1,0 +1,58 @@
+name: Daily LLM Trading Experiment
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    # 23:00 UTC Monday-Friday.
+    # This is approximately:
+    # 9:00 AM Melbourne during AEST
+    # 10:00 AM Melbourne during AEDT
+    #
+    # It runs after the corresponding NYSE session
+    # has already closed.
+    - cron: "0 23 * * 1-5"
+
+permissions:
+  contents: write
+
+jobs:
+  run-experiment:
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 30
+
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      AUTO_APPROVE_SIMULATED_ORDERS: "true"
+      PYTHONUNBUFFERED: "1"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install project
+        run: pip install -e .
+
+      - name: Verify API key exists
+        run: |
+          python -c "import os; print('OPENAI_API_KEY is set' if os.environ.get('OPENAI_API_KEY') else 'OPENAI_API_KEY is NOT set')"
+
+      - name: Run trading experiment
+        run: |
+          python -m user_side.personal_experiment.simulation_workflow
