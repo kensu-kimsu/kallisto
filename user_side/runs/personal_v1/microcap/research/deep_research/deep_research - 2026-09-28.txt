@@ -1,0 +1,30 @@
+<ANALYSIS_BLOCK>
+The portfolio has no active positions and $622.40 in available cash after realized losses on prior trades. There is no current concentration or stop-management decision required.
+
+The candidate universe is highly speculative. Many names show current volume far above reported average volume, which supports potential execution liquidity but may also indicate exceptional volatility and elevated gap or dilution risk. The supplied macro context is generally cautious, citing higher yields, mortgage-rate pressure, AI-related concerns, geopolitical risk, and possible further rate increases.
+
+ARAY is selected for only a small starter position because its supplied current volume of 374,783,700 is substantially above its 6,892,606 average volume, while its $35.8 million market capitalization and $0.30 price allow a limited allocation. This volume abnormality is not treated as a confirmed catalyst. A 20% stop-loss at $0.24 limits intended risk to approximately $30 before execution slippage. The position would use only $150 at the supplied limit price, leaving substantial cash available. No other candidate is sufficiently justified for an additional position given the absence of supplied fundamental, catalyst, or valuation information.
+</ANALYSIS_BLOCK>
+
+<ORDERS_JSON>
+{
+  "orders": [
+    {
+      "action": "b",
+      "ticker": "ARAY",
+      "shares": 500,
+      "order_type": "LIMIT",
+      "limit_price": 0.30,
+      "time_in_force": "DAY",
+      "date": "2026-09-29",
+      "stop_loss": 0.24,
+      "rationale": "Small speculative entry based only on the supplied price, market capitalization, and exceptionally high current volume relative to average volume; the defined stop limits intended downside while preserving most cash.",
+      "confidence": 0.55
+    }
+  ]
+}
+</ORDERS_JSON>
+
+<CONFIDENCE_LVL>
+0.60
+</CONFIDENCE_LVL>
