@@ -37,8 +37,9 @@ This file records the weekly progress of the six-month LLM trading experiment.
 - Weekly API cost:
 - Cumulative API cost:
 
-#### Human Intervention
-- Manual overrides: None / Describe if any
+#### Automation / Intervention
+- Automatic validation/approval status:
+- Manual intervention: None / Describe if any
 
 #### Notes
 -

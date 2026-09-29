@@ -39,7 +39,7 @@ This repository extends that foundation with a personal experiment layer includi
 - duplicate-session protection
 - U.S. holiday/weekend protection
 - GPT-5.6 model routing
-- manual approval checkpoints
+- automatic simulated approval after deterministic validation
 - hard order validation
 - OpenAI API cost tracking
 - custom performance reporting
@@ -328,21 +328,45 @@ My role is primarily:
 - reviewer
 - observer
 
-After validation, the program displays the recommendation and asks:
+After the LLM proposes an order set, the program runs structural validation and deterministic portfolio-risk validation.
 
-```text
-Approve these AI orders for the SIMULATED portfolio? [Y/N]:
-```
+When GitHub Actions runs with `AUTO_APPROVE_SIMULATED_ORDERS=true`, a valid simulated recommendation is approved automatically.
 
-During the planned six-month study, I intend not to selectively override valid AI investment decisions.
+If a recommendation violates the experiment's hard rules, the full recommendation is rejected rather than silently rewritten or resized.
 
-A valid recommendation is approved into the simulation.
-
-If a recommendation violates the experiment's hard rules, it is rejected by the program rather than manually rewritten.
-
-This helps preserve the integrity of the experiment.
+The human role is primarily observer and software maintainer.
 
 ---
+
+# Deterministic Risk Management
+
+The restarted V1 uses hard portfolio-level risk limits from Day 1.
+
+Common rules:
+
+- minimum cash reserve: 20% of current equity
+- maximum gross long exposure: 80% of current equity
+- maximum aggregate planned stop risk: 6% of current equity
+- same-session sale proceeds do not fund new purchases
+- existing stops may be tightened but not loosened
+
+Microcap Growth:
+
+- maximum position size: 20% of equity
+- maximum planned stop risk per new trade: 1.5% of equity
+- maximum 4 open positions
+- new BUY stop distance: 5% to 20%
+
+Nasdaq Titan Growth:
+
+- maximum position size: 30% of equity
+- maximum planned stop risk per new trade: 2.0% of equity
+- maximum 3 open positions
+- new BUY stop distance: 3% to 15%
+
+A stop loss defines planned downside but cannot guarantee the final exit price if a security gaps through the stop.
+
+The pre-reset V1 state is preserved on `archive/v1-pre-risk-reset-2026-09-29`.
 
 # Simulated Execution
 
@@ -795,7 +819,7 @@ For the original implementation and documentation, visit:
 
 # Status
 
-**Experiment setup:** Active  
+**Experiment setup:** Restarted V1 with deterministic risk management  
 **Mode:** Simulation only  
 ## Current Experiment Performance
 

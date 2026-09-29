@@ -271,7 +271,8 @@ def create_daily_journal(
         "",
         "## Human Intervention",
         "",
-        "- Valid AI recommendations were approved without rewriting the investment decision.",
+        "- Approval mode: Automatic after deterministic validation.
+- No discretionary human approval is required for valid simulated orders.",
         "",
         "## Notes",
         "",

@@ -250,3 +250,16 @@ Real-world fills, spreads, liquidity, broker restrictions, partial fills, and ex
 
 Four-week projections are mechanical extrapolations of recent weekly performance and are not forecasts.
 
+
+
+## Restarted V1 and Deterministic Risk Framework
+
+V1 was reset on 2026-09-29 and restarted from a clean $1,000 USD per portfolio baseline.
+
+Risk management is enforced outside the LLM. The validator limits cash deployment, gross exposure, single-position concentration, planned stop-loss risk, number of positions, and stop distance.
+
+This design keeps capital growth as the objective while preventing the model from using nearly all capital simply because the cash is technically available.
+
+Valid simulated orders are automatically approved only after deterministic validation. The human role is primarily observer and maintainer.
+
+The pre-reset V1 history is preserved on the branch `archive/v1-pre-risk-reset-2026-09-29` and is excluded from the restarted V1 performance series.

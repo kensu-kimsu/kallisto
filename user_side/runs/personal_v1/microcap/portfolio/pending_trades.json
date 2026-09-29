@@ -1,17 +1,3 @@
 {
-  "orders": [
-    {
-      "action": "b",
-      "ticker": "ARAY",
-      "shares": 500,
-      "order_type": "LIMIT",
-      "limit_price": 0.3,
-      "time_in_force": "DAY",
-      "date": "2026-09-29",
-      "stop_loss": 0.24,
-      "rationale": "Small speculative entry based only on the supplied price, market capitalization, and exceptionally high current volume relative to average volume; the defined stop limits intended downside while preserving most cash.",
-      "confidence": 0.55,
-      "company_name": "Accuray Incorporated"
-    }
-  ]
+  "orders": []
 }

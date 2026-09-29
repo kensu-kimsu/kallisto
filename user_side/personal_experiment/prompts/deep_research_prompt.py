@@ -5,6 +5,7 @@ from user_side.personal_experiment.market_data.universe_data import (
     get_microcap_prompt_data,
     get_titan_prompt_data,
 )
+from user_side.personal_experiment.risk_policy import describe_risk_policy
 
 
 def create_personal_deep_research_prompt(
@@ -96,11 +97,11 @@ NEXT INTENDED NYSE TRADING SESSION
 
 OBJECTIVE
 
-Pursue aggressive portfolio growth while controlling the probability
-and magnitude of permanent capital loss.
+Pursue strong capital growth subject to deterministic portfolio-risk limits.
 
-Growth is the primary objective, but every trade must remain rational,
-liquid, executable, and risk-controlled.
+Growth remains the primary objective, but capital preservation is enforced
+programmatically through exposure, concentration, cash-reserve, stop-distance,
+and planned-loss limits.
 
 COMMON PORTFOLIO RULES
 
@@ -126,6 +127,13 @@ COMMON PORTFOLIO RULES
 - Do not fabricate prices, news, fundamentals, catalysts, or portfolio information.
 
 {strategy_rules}
+
+HARD RISK MANAGEMENT POLICY
+
+{describe_risk_policy(experiment)}
+
+These are hard validation rules. If the complete order set violates them,
+the program rejects it instead of silently resizing or rewriting the trade.
 
 CURRENT PORTFOLIO
 

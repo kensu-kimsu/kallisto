@@ -1,17 +1,3 @@
 {
-  "orders": [
-    {
-      "action": "s",
-      "ticker": "NVDA",
-      "shares": 1,
-      "order_type": "LIMIT",
-      "limit_price": 228.0,
-      "time_in_force": "DAY",
-      "date": "2026-09-29",
-      "stop_loss": 200.0,
-      "rationale": "Trim the remaining concentrated NVDA exposure near the supplied market price amid the supplied macro pressure from elevated Treasury yields and AI-related concerns; retain one share with the existing $200 stop-loss.",
-      "confidence": 0.68,
-      "company_name": "NVIDIA Corporation"
-    }
-  ]
+  "orders": []
 }

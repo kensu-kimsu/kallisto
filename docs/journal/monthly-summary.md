@@ -36,5 +36,6 @@ This file records the monthly progress of the six-month LLM trading experiment.
 #### Observations
 -
 
-#### Human Intervention
-- Manual overrides: None / Describe if any
+#### Automation / Intervention
+- Automatic validation/approval status:
+- Manual intervention: None / Describe if any

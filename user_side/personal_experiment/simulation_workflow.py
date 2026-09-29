@@ -35,6 +35,9 @@ from user_side.personal_experiment.market_data.titan_screener import (
 from user_side.personal_experiment.daily_journal import (
     create_daily_journal,
 )
+from user_side.personal_experiment.risk_policy import (
+    validate_portfolio_risk,
+)
 
 RUN_ROOT = Path("user_side/runs/personal_v1")
 
@@ -742,6 +745,13 @@ def validate_orders(
             f"but available simulated cash "
             f"is only ${current_cash:,.2f}."
         )
+
+    portfolio_risk_errors = validate_portfolio_risk(
+        orders=orders,
+        experiment=experiment,
+        libb=libb,
+    )
+    errors.extend(portfolio_risk_errors)
 
     if errors:
         message = (

@@ -1,8 +1,1 @@
 date,ticker,action,order_type,shares,limit_price,executed_price,stop_loss,cost_basis,PnL,rationale,confidence,status,reason
-2026-09-21,REFR,BUY,LIMIT,1000,0.65,0.528,0.52,528.0,,Exceptionally high current volume relative to reported average volume supports liquidity for a tightly risk-controlled microcap entry.,0.67,FILLED,
-2026-09-21,CAN,BUY,LIMIT,900,0.37,,0.3,,,"High absolute trading volume, current volume above average, and comparatively larger reported market capitalization support a liquid speculative allocation.",0.66,FAILED,limit price of 0.37 not met. (Low: 0.4)
-2026-09-21,REFR,SELL,STOPLOSS_MET,1000,,0.48,0.52,480.0,-48.0,,,FILLED,
-2026-09-23,ZEO,BUY,LIMIT,1400,0.49,0.539,0.35,754.6,,"Speculative, liquidity-focused entry based on the supplied current volume, price, and market capitalization; position size is limited and a defined stop controls downside.",0.61,FILLED,
-2026-09-23,ZEO,SELL,STOPLOSS_MET,1400,,0.35,0.35,490.0,-264.6,,,FILLED,
-2026-09-28,AIFF,BUY,LIMIT,200,2.01,1.9250000000000003,1.6,385.0,,Exceptionally high current volume relative to reported average volume supports liquidity for a limited speculative microcap entry; defined stop controls downside while retaining cash.,0.62,FILLED,
-2026-09-28,AIFF,SELL,STOPLOSS_MET,200,,1.6,1.6,320.0,-65.0,,,FILLED,

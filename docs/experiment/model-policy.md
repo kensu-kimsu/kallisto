@@ -1,21 +1,11 @@
-﻿# Model Policy
+# Model Policy
 
-## Daily Model
+Completed Monday-Thursday NYSE sessions use **GPT-5.6 Luna**.
 
-Completed Monday-Thursday NYSE sessions use:
+Completed Friday NYSE sessions use **GPT-5.6 Terra** for the deeper weekly review.
 
-**GPT-5.6 Luna**
+The LLM proposes investment decisions, but portfolio risk limits are enforced by deterministic code outside the model.
 
-## Weekly Model
+Valid simulated orders are automatically approved only after validation when `AUTO_APPROVE_SIMULATED_ORDERS=true`.
 
-Completed Friday NYSE sessions use:
-
-**GPT-5.6 Terra**
-
-Friday is treated as the deeper weekly research and portfolio-review cycle.
-
-## Human Role
-
-The AI makes the investment decision.
-
-The human operator reviews and approves valid simulated orders but does not selectively rewrite valid recommendations during the experiment.
+The human role is observer and software maintainer rather than discretionary trade approver.

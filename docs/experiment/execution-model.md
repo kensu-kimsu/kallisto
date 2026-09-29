@@ -1,18 +1,17 @@
-﻿# Execution Model
+# Execution Model
 
-Approved recommendations become pending simulated orders.
+The LLM proposes simulated orders.
 
-Pending orders are evaluated on the applicable NYSE session.
+Before they are saved, the workflow applies:
+- structural order validation
+- universe validation
+- cash validation
+- deterministic portfolio-risk validation
 
-The simulator determines whether each LIMIT order could have filled using market data for that day.
+When GitHub Actions runs with `AUTO_APPROVE_SIMULATED_ORDERS=true`, a valid simulated recommendation is automatically approved.
 
-If filled, the system updates:
+Approved recommendations become pending simulated orders. On the applicable NYSE session, LIBB evaluates whether each LIMIT order could have filled using market data for that day.
 
-- cash
-- holdings
-- trade history
-- position history
-- portfolio equity
-- performance metrics
+If filled, the system updates cash, holdings, trade history, position history, portfolio equity, and performance metrics.
 
-A pending order is not treated as filled until the simulated execution rules are satisfied.
+This repository performs simulation only and does not place live brokerage orders.
