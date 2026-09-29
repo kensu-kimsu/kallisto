@@ -13,7 +13,8 @@
     "user_timezone": "Australia/Melbourne",
     "market_timezone": "America/New_York",
     "run_date_policy": "latest_completed_nyse_session",
-    "user_sleep_time": "21:00"
+    "user_sleep_time": "21:00",
+    "first_session": "2026-09-29"
   },
   "execution": {
     "preferred_order_type": "LIMIT",
@@ -26,19 +27,19 @@
   },
   "risk_management": {
     "policy_version": "v1-reset-2026-09-29",
-    "minimum_cash_reserve_pct": 0.20,
-    "max_gross_exposure_pct": 0.80,
+    "minimum_cash_reserve_pct": 0.2,
+    "max_gross_exposure_pct": 0.8,
     "max_total_open_risk_pct": 0.06,
     "stop_updates_may_not_loosen": true,
     "microcap": {
-      "max_position_pct": 0.20,
+      "max_position_pct": 0.2,
       "max_risk_per_trade_pct": 0.015,
       "max_open_positions": 4,
       "min_stop_distance_pct": 0.05,
-      "max_stop_distance_pct": 0.20
+      "max_stop_distance_pct": 0.2
     },
     "titans": {
-      "max_position_pct": 0.30,
+      "max_position_pct": 0.3,
       "max_risk_per_trade_pct": 0.02,
       "max_open_positions": 3,
       "min_stop_distance_pct": 0.03,
