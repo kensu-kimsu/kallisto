@@ -56,6 +56,12 @@ jobs:
         run: |
           python -c "import os; print('OPENAI_API_KEY is set' if os.environ.get('OPENAI_API_KEY') else 'OPENAI_API_KEY is NOT set')"
 
+      - name: Validate Python
+        run: |
+          python -m py_compile user_side/personal_experiment/simulation_workflow.py
+          python -m py_compile user_side/personal_experiment/risk_policy.py
+          python -m py_compile user_side/personal_experiment/prompts/deep_research_prompt.py
+
       - name: Run trading experiment
         run: |
           python -m user_side.personal_experiment.simulation_workflow
