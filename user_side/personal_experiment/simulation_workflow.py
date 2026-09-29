@@ -40,6 +40,23 @@ from user_side.personal_experiment.risk_policy import (
 )
 
 RUN_ROOT = Path("user_side/runs/personal_v1")
+SETTINGS_PATH = Path("user_side/personal_experiment/experiment_settings.json")
+
+
+def get_experiment_start_session():
+    with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
+        settings = json.load(f)
+
+    start_text = settings["time"].get("first_session")
+
+    if not start_text:
+        return None
+
+    return datetime.strptime(
+        start_text,
+        "%Y-%m-%d",
+    ).date()
+
 
 DAILY_MODEL = "gpt-5.6-luna"
 WEEKLY_MODEL = "gpt-5.6-terra"
@@ -1396,6 +1413,24 @@ def preflight_session_guard(run_date):
 
     # Brand-new experiment.
     if microcap_last is None:
+        start_session = get_experiment_start_session()
+
+        if (
+            start_session is not None
+            and run_date < start_session
+        ):
+            print(
+                f"Experiment start session is {start_session}."
+            )
+            print(
+                f"Latest completed NYSE session is only {run_date}."
+            )
+            print(
+                "Workflow stopped BEFORE OpenAI so the reset "
+                "cannot accidentally start on an earlier session."
+            )
+            return False
+
         print(
             "No previous session exists."
         )
