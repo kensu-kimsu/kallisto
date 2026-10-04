@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
 
   schedule:
-    # 23:00 UTC Monday-Friday.
+    # 23:17 UTC Monday-Friday.
     # This is approximately:
-    # 9:00 AM Melbourne during AEST
-    # 10:00 AM Melbourne during AEDT
+    # 9:17 AM Melbourne during AEST
+    # 10:17 AM Melbourne during AEDT
     #
     # It runs after the corresponding NYSE session
     # has already closed.
@@ -61,6 +61,8 @@ jobs:
           python -m py_compile user_side/personal_experiment/simulation_workflow.py
           python -m py_compile user_side/personal_experiment/risk_policy.py
           python -m py_compile user_side/personal_experiment/prompts/deep_research_prompt.py
+          python -m py_compile user_side/personal_experiment/daily_journal.py
+          python -m py_compile user_side/personal_experiment/github_sync.py
 
       - name: Run trading experiment
         run: |
