@@ -1,30 +1,32 @@
-name: Daily LLM Trading Experiment
+name: Final V1 LLM Scalping Experiment
 
 on:
   workflow_dispatch:
 
   schedule:
-    # 23:17 UTC Monday-Friday.
-    # This is approximately:
-    # 9:17 AM Melbourne during AEST
-    # 10:17 AM Melbourne during AEDT
-    #
-    # It runs after the corresponding NYSE session
-    # has already closed.
-    - cron: "17 23 * * 1-5"
+    # GitHub cron uses UTC. These schedules cover both U.S. daylight-saving
+    # and standard-time market hours. The Python workflow checks New York
+    # time and exits before OpenAI when the NYSE is closed/outside the window.
+    # Main decision/monitor cycles: approximately every 30 minutes.
+    - cron: "35 13-20 * * 1-5"
+    - cron: "5 14-21 * * 1-5"
+    # Extra end-of-day cycle catches 15:55 ET in either DST regime.
+    - cron: "55 19,20 * * 1-5"
 
 permissions:
   contents: write
 
-jobs:
-  run-experiment:
-    runs-on: ubuntu-latest
+concurrency:
+  group: final-v1-scalping
+  cancel-in-progress: false
 
-    timeout-minutes: 30
+jobs:
+  run-scalping-simulation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      AUTO_APPROVE_SIMULATED_ORDERS: "true"
       PYTHONUNBUFFERED: "1"
 
     steps:
@@ -42,28 +44,37 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      - name: Upgrade pip
-        run: python -m pip install --upgrade pip
+          cache: "pip"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Install project
-        run: pip install -e .
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
 
       - name: Verify API key exists
         run: |
           python -c "import os; print('OPENAI_API_KEY is set' if os.environ.get('OPENAI_API_KEY') else 'OPENAI_API_KEY is NOT set')"
 
-      - name: Validate Python
+      - name: Validate final V1 Python
         run: |
-          python -m py_compile user_side/personal_experiment/simulation_workflow.py
-          python -m py_compile user_side/personal_experiment/risk_policy.py
-          python -m py_compile user_side/personal_experiment/prompts/deep_research_prompt.py
-          python -m py_compile user_side/personal_experiment/daily_journal.py
-          python -m py_compile user_side/personal_experiment/github_sync.py
+          python -m py_compile user_side/personal_experiment/scalping_state.py
+          python -m py_compile user_side/personal_experiment/scalping_market_data.py
+          python -m py_compile user_side/personal_experiment/scalping_strategy.py
+          python -m py_compile user_side/personal_experiment/scalping_engine.py
+          python -m py_compile user_side/personal_experiment/scalping_reporting.py
+          python -m py_compile user_side/personal_experiment/scalping_v1.py
 
-      - name: Run trading experiment
+      - name: Run scalping simulation cycle
         run: |
-          python -m user_side.personal_experiment.simulation_workflow
+          python -m user_side.personal_experiment.scalping_v1
+
+      - name: Persist simulation state to GitHub
+        run: |
+          git add -- user_side/runs/scalping_v1 docs/journal/daily docs/results
+          if git diff --cached --quiet; then
+            echo "No simulation-state changes to commit."
+          else
+            git commit -m "experiment: update final V1 scalping state"
+            git push origin main
+          fi
