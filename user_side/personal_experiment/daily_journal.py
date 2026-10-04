@@ -271,8 +271,8 @@ def create_daily_journal(
         "",
         "## Human Intervention",
         "",
-        "- Approval mode: Automatic after deterministic validation.
-- No discretionary human approval is required for valid simulated orders.",
+        "- Approval mode: Automatic after deterministic validation.",
+        "- No discretionary human approval is required for valid simulated orders.",
         "",
         "## Notes",
         "",
