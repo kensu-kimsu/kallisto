@@ -1,41 +1,53 @@
-﻿# Monthly Experiment Summary
+# Final V1 Monthly Experiment Summary
 
-This file records the monthly progress of the six-month LLM trading experiment.
+## Month X - YYYY-MM
 
-## Monthly Entry Template
-
-### Month X - YYYY-MM
-
-#### Microcap Growth
+### Portfolio performance
 - Starting equity:
 - Ending equity:
 - Monthly return:
 - Cumulative return:
 - Maximum drawdown:
 
-#### Nasdaq Titan Growth
-- Starting equity:
-- Ending equity:
-- Monthly return:
-- Cumulative return:
-- Maximum drawdown:
-
-#### Benchmarks
+### Benchmark comparison
 - S&P 500 monthly return:
 - Nasdaq-100 monthly return:
+- Final V1 excess return vs S&P 500:
+- Final V1 excess return vs Nasdaq-100:
 
-#### Trading Activity
+### Trading statistics
 - Total trades:
-- Filled orders:
-- Unfilled orders:
+- Long trades:
+- Short trades:
+- Win rate:
+- Average winning trade:
+- Average losing trade:
+- Profit factor:
+- Target exits:
+- Stop exits:
+- Forced end-of-day exits:
 
-#### AI Cost
-- Monthly API cost:
-- Cumulative API cost:
+### Risk behavior
+- Daily-loss pauses:
+- Portfolio-drawdown pauses:
+- Largest daily gain:
+- Largest daily loss:
 
-#### Observations
+### Model / data observations
+- Most useful technical features:
+- Most useful fundamental/context features:
+- Recurring failure modes:
+- Data-provider issues:
+- GitHub Actions scheduling issues:
+
+### API usage
+- Decision cycles:
+- Input tokens:
+- Output tokens:
+
+### Human intervention
+- Manual trade overrides: None (expected)
+- Software/data intervention:
+
+### Notes
 -
-
-#### Automation / Intervention
-- Automatic validation/approval status:
-- Manual intervention: None / Describe if any
