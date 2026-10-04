@@ -14,7 +14,7 @@
     "market_timezone": "America/New_York",
     "run_date_policy": "latest_completed_nyse_session",
     "user_sleep_time": "21:00",
-    "first_session": "2026-09-29"
+    "first_session": "2026-10-05"
   },
   "execution": {
     "preferred_order_type": "LIMIT",
