@@ -71,10 +71,20 @@ jobs:
 
       - name: Persist simulation state to GitHub
         run: |
-          git add -- user_side/runs/scalping_v1 docs/journal/daily docs/results
+          git add -- user_side/runs/scalping_v1
+
+          if [ -d "docs/journal/daily" ]; then
+            git add -- docs/journal/daily
+          fi
+
+          if [ -d "docs/results" ]; then
+            git add -- docs/results
+          fi
+
           if git diff --cached --quiet; then
             echo "No simulation-state changes to commit."
           else
             git commit -m "experiment: update final V1 scalping state"
+            git pull --rebase origin main
             git push origin main
           fi
