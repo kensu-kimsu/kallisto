@@ -72,6 +72,18 @@ def start_session(state: dict, now_et: datetime) -> None:
     state["paused"] = False
 
 
+def initialise_benchmark_base(state: dict, day) -> None:
+    base = state.setdefault("benchmark_base", {})
+    if "sp500" not in base:
+        price = latest_price("^GSPC", day)
+        if price is not None:
+            base["sp500"] = price
+    if "nasdaq100" not in base:
+        price = latest_price("^NDX", day)
+        if price is not None:
+            base["nasdaq100"] = price
+
+
 def current_prices(state: dict, day) -> dict[str, float]:
     prices = {}
     for ticker, pos in state.get("positions", {}).items():
@@ -164,11 +176,6 @@ def finish_day(state: dict, now_et: datetime) -> None:
     sp = latest_price("^GSPC", now_et.date())
     ndx = latest_price("^NDX", now_et.date())
     base = state.setdefault("benchmark_base", {})
-    if sp is not None:
-        base.setdefault("sp500", sp)
-    if ndx is not None:
-        base.setdefault("nasdaq100", ndx)
-
     sp_norm = 1000.0 * sp / base["sp500"] if sp and base.get("sp500") else 1000.0
     ndx_norm = 1000.0 * ndx / base["nasdaq100"] if ndx and base.get("nasdaq100") else 1000.0
 
@@ -224,6 +231,7 @@ def main() -> None:
         return
 
     start_session(state, now_et)
+    initialise_benchmark_base(state, now_et.date())
     closed = monitor_positions(state, now_et)
 
     if now_et.time() >= FORCE_FLAT_TIME:
