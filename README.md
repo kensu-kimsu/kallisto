@@ -1,838 +1,282 @@
-# LLM Trading Experiment
+# Final V1 - Autonomous LLM Scalping Experiment
 
-A six-month simulated trading experiment comparing two AI-managed equity strategies:
+A six-month **simulation-only** experiment testing whether an LLM-guided intraday scalping process can grow a $1,000 USD portfolio and outperform both the S&P 500 and Nasdaq-100.
 
-- **Microcap Growth**
-- **Nasdaq Titan Growth**
+> This repository does not place live orders, connect to Moomoo, or move real money. All entries, exits, long positions, and short positions are hypothetical research simulations.
 
-The experiment is operated from **Australia** and is designed around the time-zone difference between Australia and the U.S. stock market.
+## Original project and attribution
 
-The objective is to observe how an LLM-driven portfolio-management process behaves over time when given a fixed capital base, a defined investment universe, strict execution rules, automated accounting, benchmark comparisons, and minimal human intervention.
-
-> **Simulation only. No live-money trading is performed by this repository.**
-
----
-
-## Original Project and Attribution
-
-This experiment is built on and inspired by the original work of **Nathan Smith / LuckyOne7777**.
-
-Primary source projects:
+This project is built on and inspired by the work of **Nathan Smith / LuckyOne7777**:
 
 - [LLM-Investor-Behavior-Benchmark](https://github.com/LuckyOne7777/LLM-Investor-Behavior-Benchmark)
 - [LLM-Trading-Lab](https://github.com/LuckyOne7777/LLM-Trading-Lab)
 
-The original repositories provided the foundation for:
+The original MIT license and copyright notice are retained.
 
-- the LIBB framework
-- persistent portfolio state
-- simulated order processing
-- research workflow
-- performance metrics
-- overall experiment structure
+## Final V1 research question
 
-This repository extends that foundation with a personal experiment layer including:
+> Can a fully autonomous LLM-guided intraday strategy, constrained by deterministic risk controls and restricted to liquid premarket leaders, produce positive simulated capital growth and outperform the S&P 500 and Nasdaq-100 over six months?
 
-- two custom stock universes
-- Australian time-zone handling
-- automated NYSE session detection
-- duplicate-session protection
-- U.S. holiday/weekend protection
-- GPT-5.6 model routing
-- automatic simulated approval after deterministic validation
-- hard order validation
-- OpenAI API cost tracking
-- custom performance reporting
-- S&P 500 and Nasdaq-100 benchmarks
-- drawdown tracking
-- four-week mechanical performance projections
-- GitHub-based documentation
+Outperformance and positive returns are **research objectives, not guaranteed outcomes**.
 
-The original LIBB framework remains credited to its original author.
+## Starting capital
 
----
+The final V1 uses **one combined simulated portfolio**:
 
-# Research Question
+- Starting capital: **$1,000 USD**
+- No external deposits
+- No leverage
+- No options
+- Whole shares only
+- No overnight positions
 
-The main research question is:
+## Stock universe
 
-> How do two LLM-managed equity portfolios with very different investment universes behave over a six-month simulated period when the AI is allowed to make investment decisions under fixed rules and consistent execution constraints?
+Every NYSE trading day, the experiment starts from two eligible universes:
 
-The two strategies are intentionally different.
+### Microcaps
 
-One portfolio focuses on highly speculative U.S.-listed microcap equities.
+- U.S.-listed equities on major U.S. exchanges
+- Market capitalization below $300 million
+- Existing broker-restriction filtering remains available
 
-The second focuses on the largest Nasdaq-listed companies by market capitalization.
+### Nasdaq Titans
 
-Both portfolios begin with the same simulated capital.
+- Approximately the top 20 distinct Nasdaq-listed companies by market capitalization
+- Duplicate company share classes filtered where possible
 
----
+The workflow then ranks names by **premarket trading volume** and keeps the top five available names from each universe for the intraday candidate list.
 
-# Experiment Design
+## Intraday decision process
 
-## Duration
+GitHub Actions runs during U.S. regular-market hours. The Python code uses `America/New_York` time and exits before calling OpenAI when the NYSE is closed or the run is outside the trading window.
 
-Planned duration:
+During an eligible cycle:
 
-**6 months**
+```text
+Premarket volume leaders
+        ->
+5-minute intraday market data
+        ->
+technical + fundamental feature set
+        ->
+GPT-5.6 Luna decision
+        ->
+deterministic risk engine
+        ->
+hypothetical LONG / SHORT position
+        ->
+5-minute stop / target monitoring
+        ->
+forced flat before market close
+        ->
+GitHub state + daily reporting
+```
 
-Initial experiment period:
+No manual approval is required.
 
-**September 2026 to approximately March 2027**
+## Analysis inputs
 
----
+The experiment uses a combination of widely used public market-analysis concepts. It does **not** claim access to proprietary Wall Street models, hidden order flow, Level 2 feeds, or private research.
 
-## Starting Capital
+Technical inputs include:
 
-Each strategy begins independently with:
+- premarket volume
+- premarket price change
+- VWAP
+- EMA 9 and EMA 20
+- RSI(14)
+- MACD and MACD signal
+- ATR-based volatility
+- relative intraday volume
+- opening-range high/low
+- opening-range breakout/breakdown
 
-| Portfolio | Starting Capital |
+Fundamental/context fields may include, when available:
+
+- market capitalization
+- float shares
+- average volume
+- beta
+- P/E and price-to-book
+- profit margin
+- revenue growth
+- earnings growth
+- return on equity
+- debt-to-equity
+- short interest as a percentage of float
+
+Fundamentals are context for an intraday decision; they are not treated as a substitute for price/volume confirmation.
+
+## Long and short simulation
+
+The LLM may propose either:
+
+- `LONG`
+- `SHORT`
+
+Shorting is **synthetic and simulation-only**. The simulator reserves the short position's notional capital as collateral and does not add short-sale proceeds to buying power. This keeps simulated gross exposure effectively unleveraged.
+
+Actual broker short availability, borrow fees, locate requirements, margin requirements, and regulatory restrictions are **not modeled**. Moomoo remains the intended real-world reference broker, but this repository has no Moomoo API connection.
+
+## Profit target
+
+Every accepted trade must target at least:
+
+**1.5% from the simulated entry price**
+
+The deterministic engine may set a larger target when the volatility-based stop requires a higher reward-to-risk ratio.
+
+A 1.5% target is a target, not an expected or guaranteed realized return.
+
+## Deterministic risk management
+
+The LLM chooses the ticker, direction, target percentage, confidence, and rationale. It does **not** choose unrestricted position size.
+
+Hard limits:
+
+| Control | Final V1 rule |
 |---|---:|
-| Microcap Growth | $1,000 USD |
-| Nasdaq Titan Growth | $1,000 USD |
+| Risk per new trade | 0.5% of current equity |
+| Maximum combined open stop risk | 1.5% of equity |
+| Maximum gross exposure | 90% of equity |
+| Maximum single-position notional | 25% of equity |
+| Minimum uncommitted cash reserve | 10% of equity |
+| Daily loss circuit breaker | 2% from session-start equity |
+| Portfolio drawdown pause | 10% from high-water mark |
+| Minimum LLM confidence | 0.60 |
 
-The portfolios are completely separate.
+ATR-based stop ranges:
 
-Performance is also compared against:
+- Microcap: approximately 1.0% to 2.5%
+- Titan: approximately 0.5% to 1.25%
 
-- S&P 500
-- Nasdaq-100
+Minimum reward-to-risk floor: **1.5:1**.
 
-Both benchmarks are normalized to the same $1,000 starting value for easier comparison.
+There is **no fixed daily trade-count limit**. Risk capacity, available capital, signal quality, the entry cutoff, and the daily-loss circuit breaker determine how many simulated trades can actually be opened.
 
----
+## Same-day flat rule
 
-# Portfolio 1: Microcap Growth
+- New entries stop at **15:15 New York time**.
+- Any remaining open position is force-closed at approximately **15:55 New York time**.
+- No final V1 position is intentionally carried overnight.
 
-The Microcap Growth portfolio represents the more speculative side of the experiment.
+## Execution assumptions
 
-## Universe Rules
+Market data uses 5-minute bars. Because bar data does not reveal the exact sequence of prices inside a bar, if both a stop and target are touched in the same 5-minute bar, the simulator uses the conservative assumption that the **stop was hit first**.
 
-Eligible securities must:
+Hypothetical entry slippage assumptions:
 
-- be U.S.-listed equities
-- trade on a major U.S. exchange
-- have a market capitalization below **$300 million**
-- pass the experiment's candidate-screening rules
-- be included in the current generated candidate universe
+- Microcaps: 0.20%
+- Titans: 0.05%
 
-Supported exchange codes currently include:
+Real fills can differ materially because of spreads, halts, liquidity, latency, partial fills, borrow availability, and market impact.
 
-- Nasdaq Global Select Market
-- Nasdaq Global Market
-- Nasdaq Capital Market
-- New York Stock Exchange
-- NYSE American
+## GitHub Actions automation
 
-The candidate universe is ranked primarily by trading volume.
-
-The workflow supplies approximately the top **50 qualifying names** to the model.
-
----
-
-## Trading App Availability Limitation
-
-This experiment is designed with future real-world executability in mind.
-
-The trading application available to me in Australia does **not necessarily provide access to every U.S.-listed microcap security**.
-
-Some microcap securities may be unavailable for opening new positions, restricted, or otherwise unsupported.
-
-Because of this, the experiment contains a restriction mechanism that can exclude securities known to be unavailable through the trading application.
-
-This restriction list is maintained separately from the AI decision process.
-
-The current six-month study remains fully simulated.
-
----
-
-# Portfolio 2: Nasdaq Titan Growth
-
-The Nasdaq Titan Growth portfolio represents the large-cap side of the experiment.
-
-## Universe Rules
-
-The universe consists of approximately the:
-
-**Top 20 distinct Nasdaq-listed equities by market capitalization**
-
-Eligible exchanges include:
-
-- Nasdaq Global Select Market
-- Nasdaq Global Market
-- Nasdaq Capital Market
-
-Duplicate company share classes are filtered where possible so the candidate universe represents distinct companies rather than multiple listings of the same company.
-
-The universe may include foreign-domiciled companies if they are Nasdaq-listed and otherwise meet the experiment rules.
-
----
-
-# AI Model Schedule
-
-The experiment uses two OpenAI models.
-
-## Monday-Thursday NYSE Sessions
-
-Regular completed NYSE sessions use:
-
-**GPT-5.6 Luna**
-
-These runs are intended for normal daily portfolio-management decisions.
-
-## Friday NYSE Session
-
-The completed Friday session uses:
-
-**GPT-5.6 Terra**
-
-Friday is treated as the deeper weekly research and portfolio-review cycle.
-
-The weekly model may perform broader portfolio assessment and rebalancing.
-
----
-
-# Australian Time-Zone Design
-
-This experiment is operated from **Melbourne, Australia**.
-
-The U.S. stock market operates overnight relative to Australian daytime hours.
-
-I do not stay awake to monitor the U.S. market session.
-
-Instead, the workflow is based on the:
-
-> **Latest fully completed NYSE trading session**
-
-The system tracks both:
-
-- `Australia/Melbourne`
-- `America/New_York`
-
-The normal operating pattern is:
+The workflow is stored at:
 
 ```text
-U.S. market trades overnight
-        ->
-NYSE session closes
-        ->
-Australian daytime
-        ->
-Workflow detects latest completed session
-        ->
-Previous simulated orders are processed
-        ->
-Portfolio is updated
-        ->
-AI generates next-session orders
-        ->
-Human approval
-        ->
-Orders wait for the next U.S. session
+.github/workflows/daily-trading-experiment.yml
 ```
 
-This removes the need to monitor U.S. markets overnight.
+It runs several times during the U.S. market session. Fixed UTC schedules cover both U.S. daylight-saving and standard time; the Python workflow itself decides whether the NYSE is currently in the valid experiment window.
 
----
+The workflow:
 
-# NYSE Session Protection
+1. checks out the repository
+2. installs Python dependencies
+3. compile-checks the final V1 modules
+4. runs one simulation cycle
+5. commits updated state, journals, and results back to `main` when anything changed
 
-The workflow includes safeguards designed to prevent duplicate API calls and preserve chronological experiment integrity.
+A concurrency lock prevents two experiment jobs from updating state at the same time.
 
-Before any OpenAI request is made, the system checks:
+GitHub scheduled jobs are not guaranteed to start at the exact scheduled second, so this is an **approximate intraday simulation**, not a low-latency trading system.
 
-- whether the latest date is a valid NYSE session
-- whether that session has already been processed
-- whether both portfolios are synchronized
-- whether the next expected NYSE session exists
-- whether a trading session was accidentally skipped
+## Daily tracking and benchmarks
 
-If the latest completed session has already been processed, the program exits before calling OpenAI.
-
-Example:
+Daily state is stored under:
 
 ```text
-NO NEW NYSE SESSION.
-
-Workflow stopped BEFORE OpenAI.
-API cost for this attempt: $0.00
+user_side/runs/scalping_v1/
 ```
 
-This also protects against:
-
-- weekends
-- U.S. stock-market holidays
-- accidental duplicate runs
-
----
-
-# Trading Rules
-
-## Allowed
-
-- long-only positions
-- full shares
-- LIMIT orders
-- DAY time-in-force
-- regular trading hours
-- simulated stop losses
-- holding cash
-
-## Not Allowed
-
-- short selling
-- margin
-- leverage
-- options
-- fractional shares
-- extended-hours execution
-
----
-
-# Order Validation
-
-The AI is responsible for generating the investment decision.
-
-Every proposed order must pass programmatic validation before entering the simulation.
-
-The validator checks:
-
-- ticker belongs to the permitted universe
-- action type is allowed
-- shares are whole numbers
-- shares are greater than zero
-- order type is LIMIT
-- time-in-force is DAY
-- order date matches the intended NYSE session
-- limit price is positive
-- confidence is between 0 and 1
-- buy orders have a valid stop loss
-- buy stop loss is below the buy limit
-- available simulated cash is sufficient
-- sell quantity does not exceed owned shares
-- update instructions only target existing positions
-
-If an order fails validation, the recommendation is rejected.
-
-The program does **not** silently rewrite or modify the AI's investment decision.
-
----
-
-# Human Intervention Policy
-
-The AI is intended to function as the portfolio manager.
-
-My role is primarily:
-
-- experiment operator
-- reviewer
-- observer
-
-After the LLM proposes an order set, the program runs structural validation and deterministic portfolio-risk validation.
-
-When GitHub Actions runs with `AUTO_APPROVE_SIMULATED_ORDERS=true`, a valid simulated recommendation is approved automatically.
-
-If a recommendation violates the experiment's hard rules, the full recommendation is rejected rather than silently rewritten or resized.
-
-The human role is primarily observer and software maintainer.
-
----
-
-# Deterministic Risk Management
-
-The restarted V1 uses hard portfolio-level risk limits from Day 1.
-
-Common rules:
-
-- minimum cash reserve: 20% of current equity
-- maximum gross long exposure: 80% of current equity
-- maximum aggregate planned stop risk: 6% of current equity
-- same-session sale proceeds do not fund new purchases
-- existing stops may be tightened but not loosened
-
-Microcap Growth:
-
-- maximum position size: 20% of equity
-- maximum planned stop risk per new trade: 1.5% of equity
-- maximum 4 open positions
-- new BUY stop distance: 5% to 20%
-
-Nasdaq Titan Growth:
-
-- maximum position size: 30% of equity
-- maximum planned stop risk per new trade: 2.0% of equity
-- maximum 3 open positions
-- new BUY stop distance: 3% to 15%
-
-A stop loss defines planned downside but cannot guarantee the final exit price if a security gaps through the stop.
-
-The pre-reset V1 state is preserved on `archive/v1-pre-risk-reset-2026-09-29`.
-
-# Simulated Execution
-
-An approved order becomes a:
-
-**pending simulated order**
-
-A pending order is not automatically treated as a filled position.
-
-On the following applicable NYSE session, the LIBB execution engine checks whether the order could have executed using market data for that trading day.
-
-The simulator then determines whether the limit order filled.
-
-If an order fills, the system automatically updates:
-
-- cash
-- shares owned
-- portfolio positions
-- trade history
-- position history
-- portfolio equity
-- gains and losses
-- performance metrics
-
-If the order does not satisfy its simulated execution conditions, it is not treated as a successful trade.
-
----
-
-# Portfolio Accounting
-
-All portfolio calculations are automated.
-
-The system tracks:
-
-- starting capital
-- current cash
-- position quantities
-- position values
-- total portfolio equity
-- trade execution
-- daily return
-- cumulative return
-- drawdown
-- historical portfolio value
-
-No manual portfolio arithmetic is required.
-
----
-
-# Benchmarks
-
-The experiment compares both AI portfolios against:
-
-## S&P 500
-
-Ticker used for data:
-
-`^GSPC`
-
-## Nasdaq-100
-
-Ticker used for data:
-
-`^NDX`
-
-Benchmark series are normalized to the same $1,000 starting capital.
-
-This allows direct comparison between:
-
-- Microcap Growth
-- Nasdaq Titan Growth
-- S&P 500
-- Nasdaq-100
-
----
-
-# Performance Reporting
-
-Reports are automatically regenerated after successful workflow runs.
-
-Current reporting includes:
-
-- daily portfolio history
-- weekly performance
-- monthly performance
-- cumulative equity
-- drawdown
-- performance summary
-- benchmark comparison
-
-The primary chart is:
+Key files:
 
 ```text
-user_side/personal_experiment/reporting/output/equity_comparison.png
+portfolio_state.json
+decision_log.jsonl
+trade_log.csv
+daily_performance.csv
 ```
 
-It shows the simulated value of the original $1,000 allocation over time.
+Daily performance is compared with:
 
-The chart includes:
+- S&P 500 (`^GSPC`)
+- Nasdaq-100 (`^NDX`)
 
-- Microcap Growth
-- Nasdaq Titan Growth
-- S&P 500
-- Nasdaq-100
-- final return annotations
-- maximum drawdown annotations
-- starting-capital reference
+Both benchmarks are normalized to a $1,000 starting value.
 
----
-
-# Four-Week Mechanical Projection
-
-The experiment also generates a four-week projection once enough weekly data exists.
-
-The projection uses recent weekly performance and mechanically compounds the recent average weekly return forward.
-
-This is **not a market forecast**.
-
-It is a simple trend extrapolation answering:
-
-> If the recent average weekly performance continued unchanged, what would the portfolio path look like over the next four weeks?
-
-Actual historical performance and projected values are kept visually separate.
-
----
-
-# API Cost Tracking
-
-OpenAI API usage is tracked separately from portfolio performance.
-
-Every model call records:
-
-- run date
-- portfolio
-- model
-- input tokens
-- output tokens
-- total tokens
-- estimated input cost
-- estimated output cost
-- estimated total call cost
-- cumulative experiment cost
-
-The log is stored at:
+The comparison chart is generated as:
 
 ```text
-user_side/personal_experiment/cost_tracking/api_cost_log.csv
+docs/results/scalping_equity_comparison.png
 ```
 
-This allows the experiment to evaluate not only investment performance, but also the computational cost required to operate the AI strategy.
+Daily journals are written to:
 
----
-
-# Cost-Preservation Safeguards
-
-OpenAI is not called when:
-
-- the latest NYSE session has already been processed
-- the market was closed for a holiday
-- it is a weekend with no new completed session
-- portfolios are out of synchronization
-- a required trading session appears to have been skipped
-
-Saved recommendations can also be reviewed locally without an API call.
-
----
-
-# Viewing Current Recommendations
-
-Current approved pending simulated orders can be viewed with:
-
-```powershell
-python -m user_side.personal_experiment.show_recommendations
+```text
+docs/journal/daily/
 ```
 
-This viewer:
-
-- reads local files only
-- shows company names
-- shows ticker
-- shows action
-- shows number of shares
-- shows limit price
-- shows stop loss
-- shows confidence
-- shows rationale
-- calculates maximum order commitment
-
-It makes:
-
-**No OpenAI API request.**
-
----
-
-# Daily Operating Procedure
-
-From PowerShell:
+## Run locally
 
 ```powershell
 cd D:\LLM-Trading-Project\LLM-Investor-Behavior-Benchmark
-```
-
-Activate the virtual environment:
-
-```powershell
 .\.venv\Scripts\Activate.ps1
+python -m user_side.personal_experiment.scalping_v1
 ```
 
-Run the experiment:
+The same New York market-hours and NYSE-calendar guards apply locally.
 
-```powershell
-python -m user_side.personal_experiment.simulation_workflow
-```
+## Final V1 start date
 
-If there is no new NYSE session, the workflow exits before making an API call.
+The clean final V1 baseline begins with the **2026-10-05 NYSE session** at $1,000 USD.
 
-If there is a new session:
+Earlier versions are preserved in archive branches and are not included in final V1 performance statistics.
 
-1. previous orders are processed
-2. portfolios are updated
-3. candidate universes are generated
-4. OpenAI research is performed
-5. API cost is logged
-6. orders are validated
-7. recommendations are displayed
-8. manual approval is requested
-9. approved orders become pending simulated orders
-10. reports are refreshed
+## Important limitations
 
----
+This is not a live trading system and is not evidence that the same results could be achieved with real money. Important differences include:
 
-# Viewing the Comparison Chart
+- delayed/incomplete public market data
+- GitHub Actions scheduling latency
+- 5-minute bars rather than tick data
+- simplified slippage
+- no commissions or regulatory fees unless later added
+- no realistic short-locate or borrow-cost model
+- no order-book data
+- no market-impact model
+- possible data-provider gaps
+- LLM reasoning errors
 
-The current comparison chart can be opened at any time with:
+The experiment should be judged by its recorded six-month results, including losses and failure modes, rather than by an assumed expectation of profitability.
 
-```powershell
-Start-Process .\user_side\personal_experiment\reporting\output\equity_comparison.png
-```
+## License
 
-To regenerate reports first:
-
-```powershell
-python -m user_side.personal_experiment.reporting.refresh_reports
-```
-
-Then open the chart:
-
-```powershell
-Start-Process .\user_side\personal_experiment\reporting\output\equity_comparison.png
-```
-
-Refreshing reports does not make an OpenAI API call.
-
----
-
-# Repository Structure
-
-```text
-user_side/
-|
-|-- personal_experiment/
-|   |
-|   |-- broker/
-|   |   `-- simulated brokerage restrictions
-|   |
-|   |-- cost_tracking/
-|   |   `-- API usage and cost tracking
-|   |
-|   |-- market_data/
-|   |   |-- microcap screener
-|   |   |-- Nasdaq Titan screener
-|   |   `-- prompt universe formatting
-|   |
-|   |-- prompts/
-|   |   `-- personal AI research prompts
-|   |
-|   |-- reporting/
-|   |   |-- performance tracker
-|   |   |-- periodic reports
-|   |   |-- four-week projection
-|   |   `-- output/
-|   |
-|   |-- market_clock.py
-|   |-- simulation_workflow.py
-|   `-- show_recommendations.py
-|
-`-- runs/
-    `-- personal_v1/
-        |-- microcap/
-        `-- titans/
-```
-
----
-
-# GitHub as the Main Documentation Source
-
-GitHub is intended to act as the primary documentation source for this study.
-
-Planned documentation structure:
-
-```text
-docs/
-|-- experiment/
-|   |-- methodology.md
-|   |-- portfolio-rules.md
-|   |-- model-policy.md
-|   |-- execution-model.md
-|   |-- risk-controls.md
-|   |-- reporting.md
-|   `-- api-costs.md
-|
-|-- journal/
-|   |-- weekly-log.md
-|   `-- monthly-summary.md
-|
-`-- results/
-    |-- equity_comparison.png
-    |-- drawdown_comparison.png
-    `-- four_week_projection.png
-```
-
-The repository will be updated throughout the six-month experiment.
-
----
-
-# Weekly Documentation
-
-A weekly summary should include:
-
-- week number
-- starting portfolio equity
-- ending portfolio equity
-- weekly return
-- cumulative return
-- benchmark returns
-- trades executed
-- orders that did not fill
-- maximum drawdown
-- weekly API cost
-- cumulative API cost
-- notable AI decisions
-- validation failures
-- confirmation of whether any human override occurred
-
----
-
-# Reproducibility
-
-The project uses persistent run directories so that each portfolio maintains independent state.
-
-Important experiment state includes:
-
-- cash
-- portfolio positions
-- pending trades
-- trade history
-- position history
-- portfolio history
-- research output
-- prompts
-- performance metrics
-
-The intent is to preserve enough information to reconstruct how each portfolio evolved throughout the study.
-
----
-
-# Limitations
-
-## Simulation vs Live Trading
-
-All trading is simulated.
-
-Real-world execution may differ because of:
-
-- bid/ask spreads
-- latency
-- order priority
-- partial fills
-- exchange conditions
-- broker restrictions
-- trading halts
-- liquidity constraints
-
-## Microcap Availability
-
-Not every microcap security available in market-data feeds is necessarily tradable through the trading application available to me in Australia.
-
-## Market Data
-
-Market information comes from third-party data sources and may contain delays, gaps, or inconsistencies.
-
-## AI Output
-
-LLM-generated research may contain incorrect assumptions or reasoning.
-
-Programmatic validation reduces some structural errors but cannot guarantee that an investment decision is economically sound.
-
-## Projections
-
-Four-week projections are mechanical extrapolations of historical experiment performance and should not be interpreted as expected returns.
-
-## Small Starting Capital
-
-Each portfolio begins with only $1,000, meaning whole-share restrictions may materially affect allocation decisions.
-
----
-
-# Security
-
-API credentials are never intentionally stored inside this repository.
-
-The OpenAI API key is supplied through the local operating-system environment:
-
-```text
-OPENAI_API_KEY
-```
-
-Secret files, virtual environments, environment-variable files, and credential files are excluded through `.gitignore`.
-
----
-
-# Disclaimer
-
-This repository documents a personal research and software experiment.
-
-It is not financial advice, investment advice, or a recommendation to buy or sell any security.
-
-All portfolio activity described here is simulated.
-
-Past simulated performance does not imply future performance.
-
----
-
-# License and Original Work
-
-The underlying **LLM-Investor-Behavior-Benchmark** project is distributed under the MIT License.
+Underlying LLM-Investor-Behavior-Benchmark code remains under its original MIT License.
 
 Original copyright:
 
 **Copyright (c) 2025 Nathan Smith**
 
-The original MIT license and copyright notice are retained in this repository.
-
-For the original implementation and documentation, visit:
-
-- [LLM-Investor-Behavior-Benchmark](https://github.com/LuckyOne7777/LLM-Investor-Behavior-Benchmark)
-- [LLM-Trading-Lab](https://github.com/LuckyOne7777/LLM-Trading-Lab)
-
 ---
 
-# Status
-
-**Experiment setup:** Restarted V1 with deterministic risk management  
+**Status:** Final V1 implementation  
 **Mode:** Simulation only  
-## Current Experiment Performance
-
-![Portfolio Performance](docs/results/equity_comparison.png)
-
-### Drawdown
-
-![Portfolio Drawdown](docs/results/drawdown_comparison.png)
-
-> Results shown above are generated from the simulated experiment and will be updated as new NYSE sessions are processed.
-
-**Location:** Australia  
-**Starting capital:** $1,000 per portfolio  
-**Strategies:** Microcap Growth vs Nasdaq Titan Growth  
-**Benchmarks:** S&P 500 and Nasdaq-100  
-**Planned duration:** 6 months
+**Starting capital:** $1,000 USD  
+**Style:** Intraday scalping  
+**Directions:** Long + synthetic unleveraged short  
+**Benchmark objective:** S&P 500 and Nasdaq-100  
+**Duration:** 6 months
