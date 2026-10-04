@@ -1,45 +1,54 @@
-﻿# Weekly Experiment Log
+# Final V1 Weekly Experiment Log
 
-This file records the weekly progress of the six-month LLM trading experiment.
+Use this template for weekly reviews of the autonomous scalping experiment.
 
-## Weekly Entry Template
+## Week X - YYYY-MM-DD
 
-### Week X - YYYY-MM-DD
-
-#### Microcap Growth
+### Portfolio
 - Starting equity:
 - Ending equity:
 - Weekly return:
 - Cumulative return:
-- Trades executed:
-- Orders not filled:
 - Maximum drawdown:
 
-#### Nasdaq Titan Growth
-- Starting equity:
-- Ending equity:
-- Weekly return:
-- Cumulative return:
-- Trades executed:
-- Orders not filled:
-- Maximum drawdown:
+### Trading activity
+- Total closed trades:
+- Long trades:
+- Short trades:
+- Wins:
+- Losses:
+- Win rate:
+- Target exits:
+- Stop exits:
+- Forced end-of-day exits:
 
-#### Benchmarks
+### Benchmarks
 - S&P 500 weekly return:
 - Nasdaq-100 weekly return:
+- Final V1 excess return vs S&P 500:
+- Final V1 excess return vs Nasdaq-100:
 
-#### AI Activity
-- Notable decisions:
-- Validation failures:
-- Model used for weekly review:
+### AI / signal behavior
+- Strongest recurring signals:
+- Weakest recurring signals:
+- Notable microcap behavior:
+- Notable Titan behavior:
+- Invalid/filtered LLM proposals:
 
-#### API Cost
-- Weekly API cost:
-- Cumulative API cost:
+### Risk
+- Daily-loss pauses:
+- Drawdown pauses:
+- Largest single-trade loss:
+- Largest single-trade gain:
 
-#### Automation / Intervention
-- Automatic validation/approval status:
-- Manual intervention: None / Describe if any
+### API usage
+- Decision cycles:
+- Input tokens:
+- Output tokens:
 
-#### Notes
+### Human intervention
+- Manual trade overrides: None (expected)
+- Software/data intervention:
+
+### Notes
 -
