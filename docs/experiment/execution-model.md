@@ -1,17 +1,53 @@
-# Execution Model
+# Final V1 Execution Model
 
-The LLM proposes simulated orders.
+The final V1 is a simulation-only intraday model using 5-minute public market-data bars.
 
-Before they are saved, the workflow applies:
-- structural order validation
-- universe validation
-- cash validation
-- deterministic portfolio-risk validation
+## Entry
 
-When GitHub Actions runs with `AUTO_APPROVE_SIMULATED_ORDERS=true`, a valid simulated recommendation is automatically approved.
+The LLM may propose a LONG or synthetic SHORT hypothesis for a ticker in the current premarket-volume candidate set.
 
-Approved recommendations become pending simulated orders. On the applicable NYSE session, LIBB evaluates whether each LIMIT order could have filled using market data for that day.
+The deterministic engine then decides whether risk capacity exists and calculates a whole-share size using:
 
-If filled, the system updates cash, holdings, trade history, position history, portfolio equity, and performance metrics.
+- current portfolio equity
+- stop distance
+- 0.5% per-trade risk budget
+- 1.5% maximum combined open risk
+- 25% single-position notional cap
+- 90% gross-exposure cap
+- 10% cash-reserve rule
 
-This repository performs simulation only and does not place live brokerage orders.
+Hypothetical entry slippage:
+
+- Microcap: 0.20%
+- Titan: 0.05%
+
+## Monitoring
+
+Open positions are checked against subsequent 5-minute bars.
+
+For LONG positions:
+
+- stop triggers when the bar low reaches the stop
+- target triggers when the bar high reaches the target
+
+For synthetic SHORT positions:
+
+- stop triggers when the bar high reaches the stop
+- target triggers when the bar low reaches the target
+
+If both target and stop are reached in the same bar, the simulator assumes the stop occurred first.
+
+## Exit
+
+Positions can close through:
+
+- TARGET
+- STOP
+- STOP_FIRST_SAME_BAR
+- FORCED_EOD_FLAT
+
+All remaining positions are closed around 15:55 ET. Overnight carry is not allowed.
+
+## Important simulation limits
+
+This model does not reproduce real order-book priority, bid/ask spreads, partial fills, trading halts, short locates, borrow fees, commissions, regulatory fees, or market impact. Moomoo is the intended reference brokerage application, but no Moomoo API is used and no live order is submitted.
