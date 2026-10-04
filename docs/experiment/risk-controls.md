@@ -1,30 +1,46 @@
-# Risk Controls
+# Final V1 Risk Controls
 
-V1 was reset on 2026-09-29 so the experiment could restart with deterministic capital-management rules from Day 1.
+Risk management is deterministic and cannot be overridden by the LLM.
 
 ## Hard portfolio limits
 
-Common:
-- minimum cash reserve: 20% of current equity
-- maximum gross long exposure: 80% of current equity
-- maximum aggregate planned stop risk: 6% of current equity
-- same-session SELL proceeds do not fund new BUY orders
-- existing stops may be tightened but not loosened
+| Control | Rule |
+|---|---:|
+| Risk per new trade | 0.5% of current equity |
+| Maximum combined open stop risk | 1.5% of current equity |
+| Maximum gross exposure | 90% of current equity |
+| Maximum single-position notional | 25% of current equity |
+| Minimum uncommitted cash reserve | 10% of current equity |
+| Daily loss circuit breaker | 2% from session-start equity |
+| Portfolio drawdown pause | 10% from high-water mark |
+| Minimum LLM confidence | 0.60 |
 
-Microcap Growth:
-- maximum single position: 20% of equity
-- maximum planned stop risk per new BUY: 1.5% of equity
-- maximum open positions: 4
-- BUY stop distance: 5% to 20%
+## Stop model
 
-Nasdaq Titan Growth:
-- maximum single position: 30% of equity
-- maximum planned stop risk per new BUY: 2.0% of equity
-- maximum open positions: 3
-- BUY stop distance: 3% to 15%
+Stops are based on current ATR percentage and then clamped to a universe-specific range:
 
-These are deterministic code checks. The LLM cannot override them.
+- Microcap: 1.0% to 2.5%
+- Nasdaq Titan: 0.5% to 1.25%
 
-A stop loss defines planned downside but cannot guarantee the final exit price during a gap.
+Each accepted trade must target at least 1.5%. The engine also enforces a minimum 1.5:1 reward-to-risk relationship, so the actual target may be greater than 1.5%.
 
-The pre-reset V1 state is preserved on `archive/v1-pre-risk-reset-2026-09-29`.
+## No leverage
+
+Long positions consume their simulated purchase notional.
+
+Synthetic short positions reserve the full entry notional as collateral. Short-sale proceeds are not added to buying power. This is a simulation convention designed to keep effective gross exposure unleveraged.
+
+## Intraday circuit breakers
+
+- No new entries after 15:15 ET.
+- A 2% session loss pauses new entries for the remainder of the session.
+- A 10% portfolio drawdown from the recorded high-water mark pauses new entries.
+- All remaining positions are force-closed around 15:55 ET.
+
+## Same-bar ambiguity
+
+The simulator uses 5-minute OHLC data. If both a stop and target are touched within one bar, the exact sequence is unknown, so the conservative assumption is that the stop was hit first.
+
+## Limitations
+
+Stops do not guarantee real-world execution prices. Microcap gaps, trading halts, spreads, liquidity, short borrow availability, and latency can produce outcomes very different from this simulation.
