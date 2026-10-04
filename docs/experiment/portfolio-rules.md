@@ -1,31 +1,48 @@
-# Portfolio Rules
+# Final V1 Portfolio Rules
 
-Each portfolio restarts with $1,000 USD.
+## Portfolio
 
-## Common
-- long only
-- whole shares only
-- LIMIT DAY orders
-- regular-hours execution
-- minimum 20% cash reserve
-- maximum 80% gross exposure
-- maximum 6% aggregate planned stop risk
-- every BUY requires a stop
-- no margin, leverage, shorting, options, or fractional shares
+- One combined simulated portfolio
+- Starting capital: $1,000 USD
+- No external deposits during the six-month experiment
+- Whole shares only
+- No options
+- No leverage
+- No overnight positions
 
-## Microcap Growth
-- U.S.-listed major-exchange equities below $300 million market cap
-- approximately top 50 qualifying names by volume
-- maximum position: 20% of equity
-- maximum planned risk per new BUY: 1.5% of equity
-- maximum 4 open positions
-- stop distance: 5% to 20%
+## Eligible stock sources
 
-## Nasdaq Titan Growth
-- approximately top 20 distinct Nasdaq-listed equities by market capitalization
-- maximum position: 30% of equity
-- maximum planned risk per new BUY: 2.0% of equity
-- maximum 3 open positions
-- stop distance: 3% to 15%
+### Microcaps
 
-Violating order sets are rejected rather than silently changed.
+- U.S.-listed equities
+- Major U.S. exchanges
+- Market capitalization below $300 million
+- Existing restriction filtering remains available
+
+### Nasdaq Titans
+
+- Approximately top 20 distinct Nasdaq-listed companies by market capitalization
+- Duplicate share classes filtered where possible
+
+The final intraday candidate list is based on the highest available premarket trading volume within each universe.
+
+## Direction
+
+- LONG allowed
+- Synthetic SHORT allowed
+
+Synthetic shorting is research-only. Full notional is reserved as collateral and short proceeds are not reused, so the simulated portfolio does not intentionally exceed 1x gross capital.
+
+## Profit target
+
+Every LLM proposal must target at least 1.5% from simulated entry. The deterministic risk engine may increase that target to preserve the minimum reward-to-risk rule.
+
+## Trade frequency
+
+There is no hard daily trade-count limit. Actual trade count is constrained by signal quality, available capital, risk capacity, the daily-loss circuit breaker, and the 15:15 ET entry cutoff.
+
+## Market hours
+
+- Decisions are made only during regular NYSE market hours.
+- New entries stop at 15:15 ET.
+- Remaining positions are closed around 15:55 ET.
