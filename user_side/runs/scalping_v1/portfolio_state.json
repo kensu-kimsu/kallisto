@@ -5,11 +5,11 @@
   },
   "cash": 1000.0,
   "high_water_mark": 1000.0,
-  "last_cycle_et": "2026-10-06T15:29:07.020408-04:00",
+  "last_cycle_et": "2026-10-07T15:30:04.582088-04:00",
   "paused": false,
   "positions": {},
   "premarket_candidates": [],
-  "session_date": "2026-10-06",
+  "session_date": "2026-10-07",
   "session_start_equity": 1000.0,
   "starting_cash": 1000.0
 }
