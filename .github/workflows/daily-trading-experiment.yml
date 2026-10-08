@@ -72,6 +72,7 @@ jobs:
         run: |
           python -m py_compile user_side/personal_experiment/scalping_state.py
           python -m py_compile user_side/personal_experiment/scalping_market_data.py
+          python -m py_compile user_side/personal_experiment/scalping_api_costs.py
           python -m py_compile user_side/personal_experiment/scalping_strategy.py
           python -m py_compile user_side/personal_experiment/scalping_engine.py
           python -m py_compile user_side/personal_experiment/scalping_reporting.py
@@ -98,7 +99,7 @@ jobs:
       - name: Persist single-cycle state
         if: steps.mode.outputs.segment == 'single'
         run: |
-          git add -- user_side/runs/scalping_v1
+          git add -- user_side/runs/scalping_v1 README.md
           if [ -d "docs/journal/daily" ]; then git add -- docs/journal/daily; fi
           if [ -d "docs/results" ]; then git add -- docs/results; fi
           if git diff --cached --quiet; then
