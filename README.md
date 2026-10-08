@@ -1,89 +1,88 @@
 # Final V1 - Autonomous LLM Scalping Experiment
 
-A six-month **simulation-only** research experiment testing whether an LLM-guided intraday scalping process can grow a $1,000 USD portfolio and outperform both the S&P 500 and Nasdaq-100.
+A six-month **simulation-only** research experiment testing whether an autonomous LLM-guided intraday scalping process can grow a $1,000 USD portfolio and outperform both the S&P 500 and Nasdaq-100.
 
-> This repository does not place live orders, connect to Moomoo, or move real money. All entries, exits, long positions, and short positions are hypothetical research simulations.
+> This repository does not place live orders or move real money. Moomoo is the intended future reference broker, but Final V1 is a simulation.
 
 ## Original project and attribution
 
-This project is built on and inspired by the work of **Nathan Smith / LuckyOne7777**:
+This project is built on and inspired by **Nathan Smith / LuckyOne7777**:
 
 - [LLM-Investor-Behavior-Benchmark](https://github.com/LuckyOne7777/LLM-Investor-Behavior-Benchmark)
 - [LLM-Trading-Lab](https://github.com/LuckyOne7777/LLM-Trading-Lab)
 
 The original MIT license and copyright notice are retained.
 
-## Research question
+## Research objective
 
-> Can a fully autonomous LLM-guided intraday strategy, constrained by deterministic risk controls and restricted to liquid premarket leaders, produce positive simulated capital growth and outperform the S&P 500 and Nasdaq-100 over six months?
+> Can a fully autonomous LLM-guided intraday strategy, constrained by deterministic risk controls and focused on premarket volume leaders, achieve positive simulated capital growth and outperform the S&P 500 and Nasdaq-100 over six months?
 
-Positive returns and benchmark outperformance are **research objectives, not guaranteed outcomes**.
+Positive returns and benchmark outperformance are objectives, not guarantees.
 
-## Starting capital
-
-Final V1 uses one combined simulated portfolio:
+## Final V1 baseline
 
 - Starting capital: **$1,000 USD**
+- Clean Final V1 start: **2026-10-08 NYSE session**
 - No external deposits
 - No leverage
 - No options
 - Whole shares only
+- LONG and synthetic 1x SHORT trades allowed
 - No overnight positions
-- Long and synthetic short trades allowed
+- No manual trade approval
 
-## Stock universe
+The Oct 7 run was an infrastructure/prelaunch test and is excluded from the clean Final V1 performance series.
 
-Each trading day begins with two source universes.
+## Trading universe
+
+Each NYSE trading day begins with two source universes.
 
 ### Microcaps
 
-- U.S.-listed equities on major U.S. exchanges
-- Market capitalization below **$300 million**
-- Broker-restriction filtering remains available
+- major U.S. exchanges
+- market capitalization below $300 million
+- approximately top **8** eligible names by premarket volume
 
 ### Nasdaq Titans
 
-- Approximately the top 20 distinct Nasdaq-listed companies by market capitalization
-- Duplicate share classes filtered where possible
+- approximately the top 20 distinct Nasdaq-listed companies by market capitalization
+- approximately top **8** available names by premarket volume
 
-The workflow ranks eligible names by **premarket trading volume** and keeps approximately the top five available names from each universe for the intraday candidate list.
+The two lists are combined into the intraday candidate set.
 
-## Intraday decision process
-
-GitHub Actions runs during U.S. market hours. Python uses `America/New_York` time and exits before calling OpenAI when the NYSE is closed or outside the experiment window.
+## Intraday architecture
 
 ```text
-Premarket volume leaders
+Premarket volume scan
         ->
-5-minute intraday market data
+5-minute market data
         ->
-technical + fundamental feature set
+technical + fundamental context
         ->
-GPT-5.6 Luna decision
+GPT-5.6 Luna decision every ~15 minutes
         ->
 deterministic risk engine
         ->
-hypothetical LONG / SHORT position
+hypothetical LONG / SHORT entry
         ->
-5-minute stop / target monitoring
+5-minute position monitoring
         ->
-forced flat before market close
+stop / target / time-stop / EOD exit
         ->
-GitHub state + daily reporting
+GitHub checkpoint + reporting
 ```
 
-No manual approval is required.
+GitHub Actions no longer needs to wake the strategy for every decision. Two persistent session runners are launched each market day and the Python process itself cycles every five minutes.
 
-## Analysis inputs
+## Professional scalping inputs
 
-Final V1 uses widely known public trading indicators rather than claiming access to proprietary institutional models.
+Final V1 uses public, reproducible market-analysis concepts rather than claiming access to proprietary institutional models.
 
 Technical inputs include:
 
-- premarket volume
-- premarket price change
+- premarket volume and premarket change
 - VWAP
-- EMA 9 and EMA 20
+- EMA 9 / EMA 20
 - RSI(14)
 - MACD and signal line
 - ATR-based volatility
@@ -91,79 +90,58 @@ Technical inputs include:
 - opening-range high/low
 - opening-range breakout/breakdown
 
-Fundamental/context fields may include, when available:
+The LLM is prompted to look for evidence-backed intraday patterns such as:
 
-- market capitalization
-- float shares
-- average volume
-- beta
-- P/E and price-to-book
-- profit margin
-- revenue growth
-- earnings growth
-- return on equity
-- debt-to-equity
-- short interest as a percentage of float
+- VWAP reclaim/rejection
+- opening-range breakout/breakdown
+- EMA 9/20 continuation after pullback
+- failed breakout/breakdown reversal
+- confirmed premarket-leader continuation
 
-Fundamentals provide context for the intraday decision but do not replace price and volume confirmation.
+Fundamental context may include market cap, float, average volume, beta, valuation, profitability, growth, leverage, return on equity, and short interest when available.
 
-## Long and short simulation
+The LLM may only use supplied data and must not invent catalysts, Level 2 data, hidden order flow, proprietary signals, or undisclosed news.
 
-The LLM may propose either `LONG` or `SHORT`.
+## Intraday timing
 
-Shorting is synthetic and simulation-only. The simulator reserves the position's full notional value as collateral and does not add short-sale proceeds to buying power, keeping simulated gross exposure effectively unleveraged.
+- monitoring begins around **09:25 ET**
+- first new entries are allowed after **09:40 ET**
+- LLM decision cadence: approximately **15 minutes**
+- position monitoring cadence: approximately **5 minutes**
+- no new entries after **15:30 ET**
+- all remaining positions are forced flat around **15:55 ET**
 
-Real short availability, locate requirements, borrow fees, margin rules, and regulatory restrictions are not yet modeled.
+No position is intentionally carried overnight.
 
-Moomoo remains the intended real-world reference broker, but Final V1 has no live Moomoo API connection.
+## Risk management
 
-## Profit target
+The LLM proposes ticker, direction, target, confidence, and rationale. Deterministic code controls position size, stop distance, exposure, and portfolio-level safety.
 
-Every accepted trade must target at least **1.5% from simulated entry**.
+Core protections include:
 
-The deterministic engine may require a larger target when the stop distance would otherwise violate the minimum reward-to-risk requirement.
+- per-trade risk budgeting
+- combined open-risk limit
+- maximum gross exposure
+- maximum single-position notional
+- minimum cash reserve
+- daily loss circuit breaker
+- portfolio drawdown pause
+- maximum simultaneous positions
+- volatility-based stops
+- minimum reward-to-risk requirement
+- breakeven-style protection after favorable movement
+- time-stop exit for stale scalps
+- forced end-of-day flat rule
 
-A target is not a guaranteed realized return.
-
-## Deterministic risk management
-
-The LLM chooses the ticker, direction, target percentage, confidence, and rationale. It does **not** have unrestricted control of position size or portfolio risk.
-
-| Control | Final V1 rule |
-|---|---:|
-| Risk per new trade | 0.5% of current equity |
-| Maximum combined open stop risk | 1.5% of equity |
-| Maximum gross exposure | 90% of equity |
-| Maximum single-position notional | 25% of equity |
-| Minimum uncommitted cash reserve | 10% of equity |
-| Daily loss circuit breaker | 2% from session-start equity |
-| Portfolio drawdown pause | 10% from high-water mark |
-| Minimum LLM confidence | 0.60 |
-| Minimum reward-to-risk | 1.5:1 |
-
-ATR-based stop ranges:
-
-- Microcap: approximately 1.0% to 2.5%
-- Titan: approximately 0.5% to 1.25%
-
-There is **no fixed daily trade-count limit**. Risk capacity, available capital, signal quality, the entry cutoff, and the daily-loss circuit breaker determine how many simulated trades can be opened.
-
-## Same-day flat rule
-
-- New entries stop at **15:15 New York time**.
-- Remaining positions are force-closed at approximately **15:55 New York time**.
-- No Final V1 position is intentionally carried overnight.
+Synthetic shorts reserve full notional capital; short-sale proceeds do not create extra buying power.
 
 ## Execution assumptions
 
-Market data uses 5-minute bars. If both stop and target appear to be touched inside the same bar, the simulator conservatively assumes the **stop was hit first**.
+Final V1 uses 5-minute public market bars. It is therefore an approximate intraday simulation, not a low-latency execution system.
 
-Hypothetical entry slippage assumptions:
+The simulator includes conservative slippage assumptions and treats ambiguous same-bar stop/target touches conservatively.
 
-- Microcaps: 0.20%
-- Titans: 0.05%
-
-Real execution can differ because of spreads, latency, partial fills, liquidity, halts, borrow availability, and market impact.
+Real execution can differ because of spreads, latency, liquidity, partial fills, halts, borrow availability, market impact, and broker rules.
 
 ## GitHub Actions automation
 
@@ -173,15 +151,23 @@ Workflow:
 .github/workflows/daily-trading-experiment.yml
 ```
 
-It runs repeatedly during the U.S. session, compile-checks Final V1 modules, executes one simulation cycle, and commits updated state/results back to `main` when anything changes.
+Two persistent scheduled jobs cover the NYSE session:
 
-A concurrency lock prevents overlapping runs from updating state simultaneously.
+```text
+morning segment
+09:25 ET -> 12:25 ET
 
-GitHub scheduled jobs are not guaranteed to launch at an exact second, so Final V1 is an **approximate intraday simulation**, not a low-latency execution system.
+Afternoon segment
+12:25 ET -> approximately 16:05 ET
+```
 
-## Daily tracking and benchmarks
+Each persistent process cycles every five minutes and checkpoints state back to GitHub. A concurrency lock prevents two runners from updating the trading state at the same time.
 
-State is stored under:
+GitHub schedule launch time is still best-effort; the long-running process is designed so a delayed cron launch does not determine every individual trading decision.
+
+## Experiment data
+
+Final V1 state is stored under:
 
 ```text
 user_side/runs/scalping_v1/
@@ -194,127 +180,132 @@ portfolio_state.json
 decision_log.jsonl
 trade_log.csv
 daily_performance.csv
+api_costs.csv
 ```
+
+## Performance benchmarks
 
 Performance is compared against:
 
 - S&P 500 (`^GSPC`)
 - Nasdaq-100 (`^NDX`)
 
-All series are normalized to the same $1,000 starting value.
+All three series are normalized to the same $1,000 baseline.
 
-Generated comparison chart:
+Generated chart:
 
 ```text
 docs/results/scalping_equity_comparison.png
 ```
 
-### Current recorded performance
+## OpenAI API cost tracking
 
-The first completed daily performance row currently recorded is **2026-10-07**.
-
-| Series | Normalized value | Return from $1,000 baseline |
-|---|---:|---:|
-| LLM Scalper | $1,000.00 | 0.00% |
-| S&P 500 | $996.57 | -0.34% |
-| Nasdaq-100 | $996.04 | -0.40% |
-
-No simulated trades were completed in that recorded session, so the LLM portfolio remained at $1,000.
-
-## Path from Final V1 to a future personal AI trading agent
-
-Final V1 is intended to test the **decision and risk architecture** first. A live system would require a separate production-grade execution layer.
-
-The transferable architecture is:
+Every paid LLM decision records input, cached-input and output token usage plus an estimated USD cost in:
 
 ```text
-Market data
-    ->
-Candidate selection
-    ->
-Technical/fundamental feature engine
-    ->
-LLM decision layer
-    ->
-Deterministic risk manager
-    ->
-Execution policy
-    ->
-Broker adapter
-    ->
-Broker reconciliation + monitoring
+user_side/runs/scalping_v1/api_costs.csv
 ```
 
-The LLM should never directly bypass the risk engine and send unrestricted broker orders.
+The table below is automatically refreshed after every recorded OpenAI decision call.
 
-### Capabilities still required before live trading
+Averages are calculated over **active periods containing at least one API call**. A partially completed trading day/week/month will therefore make the running average provisional.
 
-1. **Real-time broker quotes** - replace delayed/public quotes with broker-grade streaming market data.
-2. **Bid/ask spread and realistic slippage** - use live bid/ask and execution-quality checks instead of fixed assumptions.
-3. **Order lifecycle handling** - support acknowledgements, partial fills, rejects, cancellations, and replacements.
-4. **Real short availability and borrow costs** - verify borrow/locate availability and fees before any short order.
-5. **Moomoo API permissions and supported order types** - confirm account permissions and exact API capabilities.
-6. **Buying power and settlement rules** - read the broker account as the source of truth.
-7. **Trading halts and volatility interruptions** - prevent entry or react safely when trading is halted or interrupted.
-8. **Reconnect and retry logic** - recover safely from network/API failures without accidentally duplicating orders.
-9. **Broker/account reconciliation** - compare local state against broker positions, cash, and open orders every cycle.
-10. **Independent kill switches** - stop trading on daily loss, excessive drawdown, stale data, reconciliation mismatch, or repeated broker errors.
-11. **Secure credential handling** - keep tokens and credentials outside source control, using secrets management.
-12. **Monitoring and alerts** - notify the operator when data, broker connectivity, execution, or state becomes abnormal.
+<!-- API_COST_SUMMARY_START -->
+| Cost period | API cost (USD) | API calls | Input tokens | Output tokens |
+|---|---:|---:|---:|---:|
+| Average daily | $0.0000 | 0.0 | 0 | 0 |
+| Average weekly | $0.0000 | 0.0 | 0 | 0 |
+| Average monthly | $0.0000 | 0.0 | 0 | 0 |
+| **Total actual** | **$0.0000** | **0** | **0** | **0** |
+<!-- API_COST_SUMMARY_END -->
 
-### Proposed transfer path
+Current cost calculations use the GPT-5.6 Luna pricing snapshot configured in `scalping_api_costs.py`. Repository cost figures are calculated estimates from API-reported token usage; OpenAI billing remains the source of truth.
+
+## Daily reporting
+
+At the end of each NYSE session the experiment records:
+
+- starting equity
+- ending equity
+- daily return
+- cumulative return
+- number of closed trades
+- wins / losses
+- win rate
+- normalized S&P 500 value
+- normalized Nasdaq-100 value
+
+Daily journals are written to:
 
 ```text
-Final V1
-GitHub Actions + public-data simulation
-        ->
-Real-time Moomoo market data + local simulation
-        ->
-Moomoo API paper trading
-        ->
-Shadow mode: live data and live account observation, no order submission
-        ->
-Small-capital live pilot with hard limits and kill switch
-        ->
-Larger deployment only if live evidence supports it
+docs/journal/daily/
 ```
 
-A future implementation should separate interfaces such as:
+## Path toward a future personal AI trading agent
+
+Final V1 tests the strategy, automation, and risk architecture first. A future live system should retain the separation:
 
 ```text
 MarketDataProvider
-StrategyEngine
-RiskManager
-Broker
-Portfolio
+        ->
+StrategyEngine / LLM
+        ->
+Deterministic RiskManager
+        ->
+Broker adapter
+        ->
 ExecutionMonitor
+        ->
+Broker/account reconciliation
 ```
 
-That makes it possible to reuse the same strategy and risk logic across simulation, paper trading, and live trading while swapping only the market-data and broker adapters.
+The LLM should never be able to bypass the deterministic risk layer and send unrestricted broker orders.
+
+Before live deployment, the system would still need:
+
+1. real-time broker quotes
+2. real bid/ask and execution-quality checks
+3. order acknowledgements, partial fills, rejects, cancels and replacements
+4. real short availability and borrow costs
+5. verified Moomoo API permissions and order types
+6. real buying power and settlement handling
+7. trading-halt/volatility-interruption handling
+8. reconnect and retry protection
+9. broker/account reconciliation
+10. independent kill switches and daily-loss controls
+11. secure credential management
+12. monitoring and alerts
+
+A safer transfer path is:
+
+```text
+Final V1 public-data simulation
+        ->
+real-time broker market data + simulation
+        ->
+Moomoo API paper trading
+        ->
+shadow mode
+        ->
+small-capital live pilot with hard kill switch
+        ->
+larger deployment only if live evidence supports it
+```
 
 ## Important limitations
 
-Final V1 is not evidence that the same results could be achieved with real money. Important differences include:
+- public/delayed market-data limitations
+- 5-minute bars rather than tick/order-book data
+- GitHub-hosted infrastructure is not exchange-grade
+- simplified slippage/fill assumptions
+- no realistic partial-fill model
+- no realistic short borrow/locate fee model
+- no live broker reconciliation
+- data-provider failures are possible
+- LLM outputs can be wrong
+- stops reduce planned risk but cannot guarantee real execution price
 
-- delayed/incomplete public market data
-- GitHub Actions scheduling latency
-- 5-minute bars instead of tick data
-- simplified slippage
-- no realistic order book
-- no partial-fill model
-- no commissions/regulatory fees unless later added
-- no realistic short-locate/borrow-cost model
-- no broker reconciliation
-- possible data-provider gaps
-- LLM reasoning errors
-
-The experiment should be judged by its complete six-month record, including losses, no-trade days, rejected decisions, and failure modes.
-
-## Final V1 start date
-
-The clean Final V1 baseline is **$1,000 USD**. The first completed performance row currently present in the repository is **2026-10-07**.
-
-Earlier designs are preserved in archive branches and are not included in Final V1 performance statistics.
+The experiment should be judged by the complete six-month record, including losses, no-trade periods, rejected decisions, data failures, API costs, and operational failures.
 
 ## License
 
@@ -329,7 +320,7 @@ Original copyright:
 **Status:** Final V1 active  
 **Mode:** Simulation only  
 **Starting capital:** $1,000 USD  
-**Style:** Intraday scalping  
+**Style:** Autonomous intraday scalping  
 **Directions:** Long + synthetic unleveraged short  
-**Benchmark objective:** S&P 500 and Nasdaq-100  
+**Benchmark objective:** Beat S&P 500 and Nasdaq-100 over six months  
 **Duration:** 6 months
