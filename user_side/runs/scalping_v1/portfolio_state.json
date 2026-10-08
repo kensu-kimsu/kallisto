@@ -1,15 +1,13 @@
 {
-  "benchmark_base": {
-    "nasdaq100": 31282.89453125,
-    "sp500": 7829.27978515625
-  },
+  "benchmark_base": {},
   "cash": 1000.0,
   "high_water_mark": 1000.0,
-  "last_cycle_et": "2026-10-07T15:56:07.852182-04:00",
+  "last_cycle_et": null,
+  "last_decision_et": null,
   "paused": false,
   "positions": {},
   "premarket_candidates": [],
-  "session_date": "2026-10-07",
+  "session_date": null,
   "session_start_equity": 1000.0,
   "starting_cash": 1000.0
 }
