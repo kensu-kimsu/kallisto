@@ -1,14 +1,14 @@
 """Final V1 autonomous intraday scalping simulation.
 
-Simulation only: this module never connects to Moomoo or any other broker,
-never submits live orders, and never moves money. It uses public market data,
-LLM-generated hypotheses, deterministic risk limits, and hypothetical fills.
+Simulation only: this module never connects to a broker, never submits live orders,
+and never moves money. It uses public market data, LLM-generated hypotheses,
+deterministic risk limits, and hypothetical fills.
 """
 
 from __future__ import annotations
 
 import csv
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 import pandas_market_calendars as mcal
@@ -49,10 +49,12 @@ from user_side.personal_experiment.scalping_strategy import (
 
 NY = ZoneInfo("America/New_York")
 STARTING_CASH = 1000.0
-FIRST_SESSION = "2026-10-05"
-PREMARKET_LEADERS_PER_UNIVERSE = 5
-NEW_ENTRY_CUTOFF = time(15, 15)
+FIRST_SESSION = "2026-10-08"
+PREMARKET_LEADERS_PER_UNIVERSE = 8
+ENTRY_START = time(9, 40)
+NEW_ENTRY_CUTOFF = time(15, 30)
 FORCE_FLAT_TIME = time(15, 55)
+DECISION_INTERVAL_MINUTES = 15
 
 
 def is_nyse_session(day) -> bool:
@@ -68,6 +70,7 @@ def start_session(state: dict, now_et: datetime) -> None:
     state["session_date"] = str(now_et.date())
     state["session_start_equity"] = float(state["cash"])
     state["last_cycle_et"] = None
+    state["last_decision_et"] = None
     state["premarket_candidates"] = []
     state["paused"] = False
 
@@ -96,13 +99,20 @@ def monitor_positions(state: dict, now_et: datetime) -> list[dict]:
     closed = []
     for ticker in list(state.get("positions", {})):
         pos = state["positions"].get(ticker)
+        if pos is None:
+            continue
         bars = session_bars(ticker, now_et.date())
         if bars.empty:
             continue
         opened = datetime.fromisoformat(pos["opened_at"])
-        bars = bars.loc[(bars.index > opened) & (bars.index <= now_et)]
+        last_cycle = state.get("last_cycle_et")
+        if last_cycle:
+            floor = max(opened, datetime.fromisoformat(last_cycle))
+        else:
+            floor = opened
+        bars = bars.loc[(bars.index > floor) & (bars.index <= now_et)]
         for ts, bar in bars.iterrows():
-            result = evaluate_bar(pos, bar)
+            result = evaluate_bar(pos, bar, ts.to_pydatetime())
             if result is None:
                 continue
             exit_price, reason = result
@@ -155,6 +165,13 @@ def build_candidates(state: dict, now_et: datetime) -> list[dict]:
     return candidates
 
 
+def decision_due(state: dict, now_et: datetime) -> bool:
+    last = state.get("last_decision_et")
+    if not last:
+        return True
+    return now_et - datetime.fromisoformat(last) >= timedelta(minutes=DECISION_INTERVAL_MINUTES)
+
+
 def read_today_trades(day) -> list[dict]:
     with TRADE_LOG.open("r", encoding="utf-8", newline="") as f:
         return [row for row in csv.DictReader(f) if row.get("session_date") == str(day)]
@@ -179,7 +196,6 @@ def finish_day(state: dict, now_et: datetime) -> None:
     sp_norm = 1000.0 * sp / base["sp500"] if sp and base.get("sp500") else 1000.0
     ndx_norm = 1000.0 * ndx / base["nasdaq100"] if ndx and base.get("nasdaq100") else 1000.0
 
-    existing_dates = set()
     with DAILY_LOG.open("r", encoding="utf-8", newline="") as f:
         existing_dates = {row["date"] for row in csv.DictReader(f)}
 
@@ -226,7 +242,7 @@ def main() -> None:
     if not is_nyse_session(now_et.date()):
         print("NYSE is closed today.")
         return
-    if now_et.time() < time(9, 30) or now_et.time() > time(16, 10):
+    if now_et.time() < time(9, 25) or now_et.time() > time(16, 10):
         print("Outside the intraday experiment window.")
         return
 
@@ -247,14 +263,27 @@ def main() -> None:
     if equity <= float(state["session_start_equity"]) * (1 - DAILY_LOSS_LIMIT_PCT):
         state["paused"] = True
 
+    if now_et.time() < ENTRY_START:
+        state["last_cycle_et"] = now_et.isoformat()
+        save_state(state)
+        print("Monitoring only: waiting for the first 10 minutes of price discovery.")
+        return
+
     if now_et.time() >= NEW_ENTRY_CUTOFF or state.get("paused"):
         state["last_cycle_et"] = now_et.isoformat()
         save_state(state)
-        print("No new entries: entry cutoff or risk pause active.")
+        print("Monitoring only: entry cutoff or risk pause active.")
+        return
+
+    if not decision_due(state, now_et):
+        state["last_cycle_et"] = now_et.isoformat()
+        save_state(state)
+        print(f"Monitoring only: next LLM decision is on a {DECISION_INTERVAL_MINUTES}-minute cadence.")
         return
 
     candidates = build_candidates(state, now_et)
     if not candidates:
+        state["last_decision_et"] = now_et.isoformat()
         state["last_cycle_et"] = now_et.isoformat()
         save_state(state)
         print("No eligible premarket-volume candidates with usable intraday data.")
@@ -292,6 +321,7 @@ def main() -> None:
         "closed_positions": closed,
     })
 
+    state["last_decision_et"] = now_et.isoformat()
     state["last_cycle_et"] = now_et.isoformat()
     save_state(state)
     print(
