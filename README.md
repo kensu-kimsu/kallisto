@@ -105,37 +105,17 @@ ExecutionGateway  -> deterministic simulation engine
 
 A future Moomoo adapter should replace only those external-facing layers while preserving the same strategy, risk controls, timing rules, trade schema, and reporting logic.
 
-For a future Moomoo AU deployment, the adapter must add:
+For a future Moomoo AU deployment, the adapter must add real-time quotes/order book/trade events, broker account and positions, buying-power checks, order lifecycle, short eligibility, reconciliation, kill switches, secure OAuth/token handling, and forced-flat verification.
 
-- real-time quotes, order book and trade-event streams
-- broker account, cash, buying-power and position queries
-- order placement, replacement and cancellation
-- order acknowledgement and fill-state handling
-- partial-fill and reject handling
-- short eligibility / borrow checks before short orders
-- broker/account reconciliation after every order event
-- stale-data and disconnected-feed kill switches
-- independent daily-loss and drawdown kill switches
-- secure OAuth/token handling
-- forced end-of-day flat reconciliation
+Detailed checklist:
 
-The live system should treat **Moomoo's account and order state as the source of truth**, not the local strategy state.
+```text
+docs/experiment/moomoo-live-transfer.md
+```
 
 ## What V1 results are transferable
 
-Transferable research outputs include:
-
-- which premarket selection rules generated opportunities
-- the LLM's setup choices and rationale
-- long/short direction decisions
-- deterministic position sizing rules
-- stop/target logic
-- trade frequency and holding time
-- daily drawdown behavior
-- benchmark-relative performance
-- API usage and operating cost
-
-These are useful for comparing simulation, paper trading and eventual live trading.
+Transferable research outputs include premarket selection behavior, LLM setup choices, long/short direction, deterministic sizing, stop/target logic, trade frequency, holding time, drawdown behavior, benchmark-relative performance, and API operating cost.
 
 However, **the exact V1 P/L is not assumed to transfer 1:1 to real money**. Live results will differ because real trading includes bid/ask spread, latency, queue position, partial fills, rejects, halts, short availability, borrow cost, broker fees and market impact. The first transfer-validation stage must therefore be Moomoo paper trading using Moomoo market data and order lifecycle before any live-money deployment.
 
@@ -155,13 +135,7 @@ Technical inputs include:
 - opening-range high/low
 - opening-range breakout/breakdown
 
-The LLM is prompted to look for evidence-backed intraday patterns such as:
-
-- VWAP reclaim/rejection
-- opening-range breakout/breakdown
-- EMA 9/20 continuation after pullback
-- failed breakout/breakdown reversal
-- confirmed premarket-leader continuation
+The LLM is prompted to look for evidence-backed intraday patterns such as VWAP reclaim/rejection, opening-range breakout/breakdown, EMA continuation, failed breakout/breakdown reversal, and confirmed premarket-leader continuation.
 
 Fundamental context may include market cap, float, average volume, beta, valuation, profitability, growth, leverage, return on equity, and short interest when available.
 
@@ -182,21 +156,7 @@ No position is intentionally carried overnight.
 
 The LLM proposes ticker, direction, target, confidence, and rationale. Deterministic code controls position size, stop distance, exposure, and portfolio-level safety.
 
-Core protections include:
-
-- per-trade risk budgeting
-- combined open-risk limit
-- maximum gross exposure
-- maximum single-position notional
-- minimum cash reserve
-- daily loss circuit breaker
-- portfolio drawdown pause
-- maximum simultaneous positions
-- volatility-based stops
-- minimum reward-to-risk requirement
-- breakeven-style protection after favorable movement
-- time-stop exit for stale scalps
-- forced end-of-day flat rule
+Core protections include per-trade risk budgeting, combined open-risk limit, gross exposure, single-position cap, minimum cash reserve, daily-loss breaker, portfolio drawdown pause, maximum simultaneous positions, volatility stops, minimum reward-to-risk, breakeven protection, time-stop exits, and forced end-of-day flat.
 
 Synthetic shorts reserve full notional capital; short-sale proceeds do not create extra buying power.
 
@@ -216,19 +176,7 @@ Workflow:
 .github/workflows/daily-trading-experiment.yml
 ```
 
-Two persistent scheduled jobs cover the NYSE session:
-
-```text
-morning segment
-09:25 ET -> 12:25 ET
-
-Afternoon segment
-12:25 ET -> approximately 16:05 ET
-```
-
-Each persistent process cycles every five minutes and checkpoints state back to GitHub. A concurrency lock prevents two runners from updating the trading state at the same time.
-
-GitHub schedule launch time is still best-effort; the long-running process is designed so a delayed cron launch does not determine every individual trading decision.
+Two persistent scheduled jobs cover the NYSE session: morning 09:25-12:25 ET and afternoon 12:25 to approximately 16:05 ET. Each process cycles every five minutes and checkpoints state back to GitHub.
 
 ## Experiment data
 
@@ -250,12 +198,7 @@ api_costs.csv
 
 ## Performance benchmarks
 
-Performance is compared against:
-
-- S&P 500 (`^GSPC`)
-- Nasdaq-100 (`^NDX`)
-
-All three series are normalized to the same $1,000 baseline.
+Performance is compared against S&P 500 (`^GSPC`) and Nasdaq-100 (`^NDX`), normalized to the same $1,000 baseline.
 
 Generated chart:
 
@@ -271,9 +214,7 @@ Every paid LLM decision records input, cached-input and output token usage plus 
 user_side/runs/scalping_v1/api_costs.csv
 ```
 
-The table below is automatically refreshed after every recorded OpenAI decision call.
-
-Averages are calculated over **active periods containing at least one API call**. A partially completed trading day/week/month will therefore make the running average provisional.
+Averages are calculated over active periods containing at least one API call.
 
 <!-- API_COST_SUMMARY_START -->
 | Cost period | API cost (USD) | API calls | Input tokens | Output tokens |
@@ -288,23 +229,7 @@ Current cost calculations use the GPT-5.6 Luna pricing snapshot configured in `s
 
 ## Daily reporting
 
-At the end of each NYSE session the experiment records:
-
-- starting equity
-- ending equity
-- daily return
-- cumulative return
-- number of closed trades
-- wins / losses
-- win rate
-- normalized S&P 500 value
-- normalized Nasdaq-100 value
-
-Daily journals are written to:
-
-```text
-docs/journal/daily/
-```
+At the end of each NYSE session the experiment records starting/ending equity, daily/cumulative return, trade count, wins/losses, win rate, and normalized S&P 500/Nasdaq-100 values.
 
 ## Path toward Moomoo Australia paper/live trading
 
