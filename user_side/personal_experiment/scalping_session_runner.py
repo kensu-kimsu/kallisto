@@ -41,6 +41,7 @@ def persist_state(now_et: datetime) -> None:
         "user_side/runs/scalping_v1",
         "docs/journal/daily",
         "docs/results",
+        "README.md",
     ]
     existing = [path for path in paths if (PROJECT_ROOT / path).exists()]
     if existing:
