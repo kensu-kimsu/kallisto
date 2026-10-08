@@ -2,16 +2,28 @@ name: Final V1 LLM Scalping Experiment
 
 on:
   workflow_dispatch:
+    inputs:
+      segment:
+        description: "Run mode"
+        required: true
+        default: "single"
+        type: choice
+        options:
+          - single
+          - morning
+          - afternoon
 
   schedule:
-    # GitHub cron uses UTC. These schedules cover both U.S. daylight-saving
-    # and standard-time market hours. The Python workflow checks New York
-    # time and exits before OpenAI when the NYSE is closed/outside the window.
-    # Main decision/monitor cycles: approximately every 30 minutes.
-    - cron: "35 13-20 * * 1-5"
-    - cron: "5 14-21 * * 1-5"
-    # Extra end-of-day cycle catches 15:55 ET in either DST regime.
-    - cron: "55 19,20 * * 1-5"
+    # GitHub cron is best-effort, so we no longer depend on it for every
+    # intraday decision. Instead, each scheduled job starts well before its
+    # market segment and remains alive, cycling every five minutes.
+    #
+    # 12:30 UTC = 08:30 ET during U.S. DST / 07:30 ET during standard time.
+    # The morning runner waits until 09:25 ET and stays alive through 12:25 ET.
+    - cron: "30 12 * * 1-5"
+    # 16:00 UTC = 12:00 ET during U.S. DST / 11:00 ET during standard time.
+    # The afternoon runner waits/queues until 12:25 ET and stays alive through EOD.
+    - cron: "0 16 * * 1-5"
 
 permissions:
   contents: write
@@ -23,7 +35,7 @@ concurrency:
 jobs:
   run-scalping-simulation:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 350
 
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -64,23 +76,31 @@ jobs:
           python -m py_compile user_side/personal_experiment/scalping_engine.py
           python -m py_compile user_side/personal_experiment/scalping_reporting.py
           python -m py_compile user_side/personal_experiment/scalping_v1.py
+          python -m py_compile user_side/personal_experiment/scalping_session_runner.py
 
-      - name: Run scalping simulation cycle
+      - name: Resolve run mode
+        id: mode
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "segment=${{ inputs.segment }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "30 12 * * 1-5" ]; then
+            echo "segment=morning" >> "$GITHUB_OUTPUT"
+          else
+            echo "segment=afternoon" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run single test cycle
+        if: steps.mode.outputs.segment == 'single'
         run: |
           python -m user_side.personal_experiment.scalping_v1
 
-      - name: Persist simulation state to GitHub
+      - name: Persist single-cycle state
+        if: steps.mode.outputs.segment == 'single'
         run: |
           git add -- user_side/runs/scalping_v1
-
-          if [ -d "docs/journal/daily" ]; then
-            git add -- docs/journal/daily
-          fi
-
-          if [ -d "docs/results" ]; then
-            git add -- docs/results
-          fi
-
+          if [ -d "docs/journal/daily" ]; then git add -- docs/journal/daily; fi
+          if [ -d "docs/results" ]; then git add -- docs/results; fi
           if git diff --cached --quiet; then
             echo "No simulation-state changes to commit."
           else
@@ -88,3 +108,8 @@ jobs:
             git pull --rebase origin main
             git push origin main
           fi
+
+      - name: Run persistent market segment
+        if: steps.mode.outputs.segment != 'single'
+        run: |
+          python -m user_side.personal_experiment.scalping_session_runner --segment "${{ steps.mode.outputs.segment }}"
