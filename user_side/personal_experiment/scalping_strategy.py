@@ -9,6 +9,8 @@ from datetime import datetime
 
 from openai import OpenAI
 
+from user_side.personal_experiment.scalping_api_costs import record_api_call
+
 MODEL = "gpt-5.6-luna"
 MIN_TARGET_PCT = 0.004
 MIN_CONFIDENCE = 0.58
@@ -105,7 +107,7 @@ confidence must be between 0 and 1.
 """
 
 
-def call_model(prompt: str) -> tuple[dict, dict]:
+def call_model(prompt: str, now_et: datetime) -> tuple[dict, dict]:
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY is not set.")
@@ -116,17 +118,34 @@ def call_model(prompt: str) -> tuple[dict, dict]:
         input=prompt,
         reasoning={"effort": "low"},
     )
+
+    usage = response.usage
+    input_tokens = int(getattr(usage, "input_tokens", 0) or 0) if usage else 0
+    output_tokens = int(getattr(usage, "output_tokens", 0) or 0) if usage else 0
+    input_details = getattr(usage, "input_tokens_details", None) if usage else None
+    cached_input_tokens = int(getattr(input_details, "cached_tokens", 0) or 0) if input_details else 0
+
+    cost_row = record_api_call(
+        timestamp_et=now_et,
+        model=MODEL,
+        input_tokens=input_tokens,
+        cached_input_tokens=cached_input_tokens,
+        output_tokens=output_tokens,
+    )
+
+    tokens = {
+        "input_tokens": input_tokens,
+        "cached_input_tokens": cached_input_tokens,
+        "output_tokens": output_tokens,
+        "estimated_cost_usd": float(cost_row["total_cost_usd"]),
+    }
+
     text = (response.output_text or "").strip()
     try:
         payload = json.loads(text)
     except json.JSONDecodeError as exc:
         raise RuntimeError(f"Model did not return valid JSON: {exc}") from exc
 
-    usage = response.usage
-    tokens = {
-        "input_tokens": getattr(usage, "input_tokens", 0) if usage else 0,
-        "output_tokens": getattr(usage, "output_tokens", 0) if usage else 0,
-    }
     return payload, tokens
 
 
