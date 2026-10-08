@@ -290,7 +290,7 @@ def main() -> None:
         return
 
     prompt = build_prompt(state, candidates, now_et)
-    response, tokens = call_model(prompt)
+    response, tokens = call_model(prompt, now_et)
     proposals = validate_proposals(
         response,
         {candidate["ticker"] for candidate in candidates},
@@ -326,7 +326,8 @@ def main() -> None:
     save_state(state)
     print(
         f"Candidates: {len(candidates)} | proposals: {len(proposals)} | "
-        f"opened: {len(opened)} | closed: {len(closed)}"
+        f"opened: {len(opened)} | closed: {len(closed)} | "
+        f"API cost this decision: ${tokens['estimated_cost_usd']:.6f}"
     )
 
 
