@@ -36,6 +36,7 @@ def ensure_state(starting_cash: float = 1000.0) -> None:
             "session_start_equity": starting_cash,
             "high_water_mark": starting_cash,
             "last_cycle_et": None,
+            "last_decision_et": None,
             "premarket_candidates": [],
             "benchmark_base": {},
             "paused": False,
@@ -51,7 +52,13 @@ def ensure_state(starting_cash: float = 1000.0) -> None:
 
 
 def load_state() -> dict:
-    return json.loads(STATE_PATH.read_text(encoding="utf-8"))
+    state = json.loads(STATE_PATH.read_text(encoding="utf-8"))
+    # Backward-compatible defaults for state files created before these fields existed.
+    state.setdefault("last_decision_et", None)
+    state.setdefault("last_cycle_et", None)
+    state.setdefault("premarket_candidates", [])
+    state.setdefault("paused", False)
+    return state
 
 
 def save_state(state: dict) -> None:
