@@ -79,6 +79,10 @@ jobs:
           python -m py_compile user_side/personal_experiment/scalping_v1.py
           python -m py_compile user_side/personal_experiment/scalping_session_runner.py
 
+      - name: Run deterministic smoke tests
+        run: |
+          python -m unittest discover -s tests -p "test_scalping_smoke.py" -v
+
       - name: Resolve run mode
         id: mode
         shell: bash
