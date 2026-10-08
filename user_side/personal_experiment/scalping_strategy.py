@@ -10,8 +10,8 @@ from datetime import datetime
 from openai import OpenAI
 
 MODEL = "gpt-5.6-luna"
-MIN_TARGET_PCT = 0.015
-MIN_CONFIDENCE = 0.60
+MIN_TARGET_PCT = 0.004
+MIN_CONFIDENCE = 0.58
 
 
 def build_prompt(state: dict, candidates: list[dict], now_et: datetime) -> str:
@@ -29,47 +29,59 @@ def build_prompt(state: dict, candidates: list[dict], now_et: datetime) -> str:
     ]
 
     return f"""
-You are the autonomous decision engine for a SIMULATED intraday scalping research experiment.
+You are the autonomous decision engine for a SIMULATED professional intraday scalping experiment.
 
 Current New York time: {now_et.isoformat()}
 Starting capital: $1,000 USD
 Current uncommitted cash: ${state['cash']:.2f}
 Open simulated positions: {json.dumps(state['positions'], default=str)}
 
+PRIMARY JOB
+Behave like a disciplined professional intraday scalper: identify only liquid,
+well-defined short-duration setups, enter when the supplied evidence is aligned,
+and avoid turning a scalp into an investment. The deterministic engine controls
+position size, stop distance, total exposure, daily loss limits and forced exits.
+
 RESEARCH OBJECTIVE
 Seek positive risk-adjusted capital growth and attempt to outperform both the
 S&P 500 and Nasdaq-100 over six months. Outperformance is an objective, not a guarantee.
 
-CANDIDATE SELECTION
-The candidate list contains the highest premarket-volume names found inside:
-1. eligible major-exchange U.S.-listed microcaps below $300M market cap
-2. the Nasdaq Titan universe
+SETUPS TO LOOK FOR
+Prefer one of these evidence-backed patterns when the supplied data supports it:
+1. VWAP reclaim/rejection with trend confirmation.
+2. Opening-range breakout/breakdown with meaningful relative volume.
+3. EMA 9/20 trend continuation after a pullback toward VWAP/EMA.
+4. Failed breakout/breakdown reversal when momentum and VWAP positioning confirm it.
+5. Strong premarket leader continuation only when regular-session price/volume confirms it.
+
+PROFESSIONAL DISCIPLINE
+- Do not trade merely because a ticker appears in the candidate list.
+- But when a clear, liquid setup exists, choose the best opportunity instead of
+  defaulting to cash through excessive caution.
+- Prefer one or two high-quality ideas over many mediocre ideas.
+- Avoid chasing an extended move far from VWAP unless momentum and relative volume remain strong.
+- Do not invent catalysts, headlines, Level 2/order-book information, hidden order flow,
+  proprietary signals or fundamentals that were not supplied.
+- Long and synthetic 1x short ideas are both allowed.
+- If evidence is conflicting or no setup has acceptable reward/risk, return no trade.
 
 ANALYSIS INPUTS
-Use only the supplied data. Technical evidence includes VWAP, EMA 9/20,
-RSI(14), MACD, ATR, opening-range breakout/breakdown, relative volume,
-premarket volume and premarket gap. Fundamental context may include market cap,
-float, beta, valuation, profitability, growth, leverage and short interest.
-
-These are widely used public market-analysis concepts. Do not claim access to
-proprietary Wall Street models, hidden order flow, Level 2 data, undisclosed
-fundamentals, or news that was not supplied.
+Use only the supplied data. Technical evidence includes price, VWAP, EMA 9/20,
+RSI(14), MACD, ATR, opening-range behavior, relative volume, premarket volume and gap.
+Fundamental context is secondary and may include market cap, float, beta, valuation,
+profitability, growth, leverage and short interest.
 
 SIMULATION RULES
 - Simulation only. No live brokerage orders are placed.
 - LONG and synthetic 1x SHORT positions are allowed.
-- No leverage.
-- No options.
+- No leverage and no options.
 - Whole shares only.
 - Every position must be flat before 16:00 ET.
-- No new entries after 15:15 ET.
-- Every proposed trade must target at least 1.5% from the simulated entry.
-- A deterministic risk engine chooses the final share count and stop distance.
+- No new entries after 15:30 ET.
+- The proposed target must be plausible for an intraday scalp; use 0.004 or higher.
+- The deterministic risk engine may raise the target to preserve minimum reward/risk.
 - Synthetic short-sale proceeds do not become new buying power.
-- There is no fixed daily trade-count limit, but do not force weak trades.
-- Prefer alignment between price/volume trend, VWAP, momentum, volatility,
-  opening-range behavior and the available fundamental context.
-- If the evidence is weak or conflicting, return no trade.
+- There is no fixed daily trade-count target. Do not force weak trades.
 
 CANDIDATES
 {json.dumps(payload, indent=2, default=str)}
@@ -80,15 +92,15 @@ Return JSON only in this exact shape:
     {{
       "ticker": "XYZ",
       "side": "LONG",
-      "target_pct": 0.015,
+      "target_pct": 0.008,
       "confidence": 0.72,
-      "rationale": "brief supplied-evidence rationale"
+      "rationale": "brief rationale tied only to supplied evidence"
     }}
   ]
 }}
 
 Allowed side values: LONG or SHORT.
-target_pct must be 0.015 or higher.
+target_pct must be 0.004 or higher.
 confidence must be between 0 and 1.
 """
 
