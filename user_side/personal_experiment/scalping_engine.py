@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from user_side.personal_experiment.scalping_state import (
     TRADE_FIELDS,
@@ -12,13 +12,21 @@ from user_side.personal_experiment.scalping_state import (
 
 RISK_PER_TRADE_PCT = 0.005
 MAX_OPEN_RISK_PCT = 0.015
-MAX_GROSS_EXPOSURE_PCT = 0.90
-MAX_POSITION_PCT = 0.25
-MIN_CASH_RESERVE_PCT = 0.10
+MAX_GROSS_EXPOSURE_PCT = 0.75
+MAX_POSITION_PCT = 0.30
+MIN_CASH_RESERVE_PCT = 0.15
 DAILY_LOSS_LIMIT_PCT = 0.02
 PORTFOLIO_DRAWDOWN_PAUSE_PCT = 0.10
 REWARD_TO_RISK_FLOOR = 1.5
-MIN_TARGET_PCT = 0.015
+MAX_OPEN_POSITIONS = 3
+MAX_HOLD_MINUTES = 75
+
+# Intraday scalping targets should be volatility-aware rather than forcing a
+# swing-trade-style 1.5% minimum on every ticker.
+MIN_TARGET_BY_UNIVERSE = {
+    "microcap": 0.009,
+    "titan": 0.0045,
+}
 
 
 def mark_to_market(state: dict, prices: dict[str, float]) -> float:
@@ -35,10 +43,10 @@ def mark_to_market(state: dict, prices: dict[str, float]) -> float:
 
 
 def stop_pct(universe: str, atr_pct: float) -> float:
-    # Microcaps receive a wider volatility allowance than large-cap Titans.
+    """Use tighter, volatility-aware stop distances suited to intraday scalping."""
     if universe == "microcap":
-        return min(max(float(atr_pct or 0), 0.010), 0.025)
-    return min(max(float(atr_pct or 0), 0.005), 0.0125)
+        return min(max(float(atr_pct or 0), 0.006), 0.018)
+    return min(max(float(atr_pct or 0), 0.003), 0.009)
 
 
 def open_simulated_trade(
@@ -51,6 +59,8 @@ def open_simulated_trade(
 ) -> dict | None:
     ticker = proposal["ticker"]
     if ticker in state["positions"]:
+        return None
+    if len(state.get("positions", {})) >= MAX_OPEN_POSITIONS:
         return None
 
     if current_equity <= float(state["session_start_equity"]) * (1 - DAILY_LOSS_LIMIT_PCT):
@@ -69,12 +79,12 @@ def open_simulated_trade(
     stop_distance = stop_pct(universe, float(tech.get("atr_pct") or 0))
     target_pct = max(
         float(proposal["target_pct"]),
-        MIN_TARGET_PCT,
+        MIN_TARGET_BY_UNIVERSE.get(universe, 0.005),
         stop_distance * REWARD_TO_RISK_FLOOR,
     )
 
     # Conservative hypothetical slippage assumptions.
-    slippage = 0.0020 if universe == "microcap" else 0.0005
+    slippage = 0.0015 if universe == "microcap" else 0.0003
     if proposal["side"] == "LONG":
         entry = raw_price * (1 + slippage)
         stop = entry * (1 - stop_distance)
@@ -117,8 +127,6 @@ def open_simulated_trade(
     if shares < 1:
         return None
 
-    # For synthetic shorts, notional is held as collateral instead of adding
-    # short-sale proceeds to buying power. This keeps exposure effectively 1x.
     reserved_capital = shares * entry
     state["cash"] = float(state["cash"]) - reserved_capital
     state["positions"][ticker] = {
@@ -127,6 +135,7 @@ def open_simulated_trade(
         "side": proposal["side"],
         "shares": shares,
         "entry_price": round(entry, 6),
+        "initial_stop_price": round(stop, 6),
         "stop_price": round(stop, 6),
         "target_price": round(target, 6),
         "target_pct": round(target_pct, 6),
@@ -134,6 +143,7 @@ def open_simulated_trade(
         "reserved_capital": round(reserved_capital, 6),
         "confidence": proposal["confidence"],
         "rationale": proposal["rationale"],
+        "breakeven_armed": False,
     }
     return state["positions"][ticker]
 
@@ -181,9 +191,11 @@ def close_simulated_trade(
     return row
 
 
-def evaluate_bar(pos: dict, bar) -> tuple[float, str] | None:
+def evaluate_bar(pos: dict, bar, bar_time: datetime | None = None) -> tuple[float, str] | None:
+    """Evaluate stop/target/time exits conservatively from a completed 5-minute bar."""
     high = float(bar["high"])
     low = float(bar["low"])
+    close = float(bar["close"])
     stop = float(pos["stop_price"])
     target = float(pos["target_price"])
 
@@ -194,10 +206,27 @@ def evaluate_bar(pos: dict, bar) -> tuple[float, str] | None:
         stop_hit = high >= stop
         target_hit = low <= target
 
-    # With 5-minute OHLC data we cannot know the exact intrabar sequence.
-    # If both levels are touched in one bar, assume the stop happened first.
+    # With OHLC data the intrabar sequence is unknown. Assume stop first when
+    # both stop and target are touched in one bar, which is deliberately conservative.
     if stop_hit:
         return stop, "STOP_FIRST_SAME_BAR" if target_hit else "STOP"
     if target_hit:
         return target, "TARGET"
+
+    opened = datetime.fromisoformat(pos["opened_at"])
+    if bar_time is not None and bar_time - opened >= timedelta(minutes=MAX_HOLD_MINUTES):
+        return close, "TIME_STOP"
+
+    # Once a completed bar closes at least +1R in favor, protect the next bars
+    # at approximately breakeven. This avoids using same-bar lookahead.
+    initial_stop = float(pos.get("initial_stop_price", pos["stop_price"]))
+    one_r = abs(float(pos["entry_price"]) - initial_stop)
+    if one_r > 0 and not pos.get("breakeven_armed"):
+        if pos["side"] == "LONG" and close >= float(pos["entry_price"]) + one_r:
+            pos["stop_price"] = round(float(pos["entry_price"]), 6)
+            pos["breakeven_armed"] = True
+        elif pos["side"] == "SHORT" and close <= float(pos["entry_price"]) - one_r:
+            pos["stop_price"] = round(float(pos["entry_price"]), 6)
+            pos["breakeven_armed"] = True
+
     return None
