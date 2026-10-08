@@ -2,7 +2,7 @@
 
 A six-month **simulation-only** research experiment testing whether an autonomous LLM-guided intraday scalping process can grow a $1,000 USD portfolio and outperform both the S&P 500 and Nasdaq-100.
 
-> This repository does not place live orders or move real money. Moomoo is the intended future reference broker, but Final V1 is a simulation.
+> This repository does not place live orders or move real money. Moomoo Australia is the intended future broker integration target, but Final V1 remains a simulation.
 
 ## Original project and attribution
 
@@ -73,6 +73,71 @@ GitHub checkpoint + reporting
 ```
 
 GitHub Actions no longer needs to wake the strategy for every decision. Two persistent session runners are launched each market day and the Python process itself cycles every five minutes.
+
+## Live-transfer design
+
+Final V1 is being structured so the **decision and risk logic can be reused** when moving to Moomoo Australia paper/live trading.
+
+The key rule is:
+
+```text
+LLM proposes a trade
+        ->
+deterministic risk manager approves/rejects
+        ->
+execution adapter handles broker-specific work
+```
+
+The LLM must never directly submit unrestricted broker orders.
+
+Broker-neutral interfaces are defined in:
+
+```text
+user_side/personal_experiment/scalping_interfaces.py
+```
+
+Current Final V1 uses:
+
+```text
+MarketDataProvider -> yfinance/public 5-minute data
+ExecutionGateway  -> deterministic simulation engine
+```
+
+A future Moomoo adapter should replace only those external-facing layers while preserving the same strategy, risk controls, timing rules, trade schema, and reporting logic.
+
+For a future Moomoo AU deployment, the adapter must add:
+
+- real-time quotes, order book and trade-event streams
+- broker account, cash, buying-power and position queries
+- order placement, replacement and cancellation
+- order acknowledgement and fill-state handling
+- partial-fill and reject handling
+- short eligibility / borrow checks before short orders
+- broker/account reconciliation after every order event
+- stale-data and disconnected-feed kill switches
+- independent daily-loss and drawdown kill switches
+- secure OAuth/token handling
+- forced end-of-day flat reconciliation
+
+The live system should treat **Moomoo's account and order state as the source of truth**, not the local strategy state.
+
+## What V1 results are transferable
+
+Transferable research outputs include:
+
+- which premarket selection rules generated opportunities
+- the LLM's setup choices and rationale
+- long/short direction decisions
+- deterministic position sizing rules
+- stop/target logic
+- trade frequency and holding time
+- daily drawdown behavior
+- benchmark-relative performance
+- API usage and operating cost
+
+These are useful for comparing simulation, paper trading and eventual live trading.
+
+However, **the exact V1 P/L is not assumed to transfer 1:1 to real money**. Live results will differ because real trading includes bid/ask spread, latency, queue position, partial fills, rejects, halts, short availability, borrow cost, broker fees and market impact. The first transfer-validation stage must therefore be Moomoo paper trading using Moomoo market data and order lifecycle before any live-money deployment.
 
 ## Professional scalping inputs
 
@@ -241,56 +306,27 @@ Daily journals are written to:
 docs/journal/daily/
 ```
 
-## Path toward a future personal AI trading agent
+## Path toward Moomoo Australia paper/live trading
 
-Final V1 tests the strategy, automation, and risk architecture first. A future live system should retain the separation:
+Current Moomoo OpenAPI documentation shows support for real-time quote/order-book/trade-event streaming, account/position access, order placement/modification/cancellation, simulated trading, and U.S. stock trading for Moomoo AU accounts. Paper trading supports U.S. stock short selling, but paper trading has limitations compared with live execution.
 
-```text
-MarketDataProvider
-        ->
-StrategyEngine / LLM
-        ->
-Deterministic RiskManager
-        ->
-Broker adapter
-        ->
-ExecutionMonitor
-        ->
-Broker/account reconciliation
-```
-
-The LLM should never be able to bypass the deterministic risk layer and send unrestricted broker orders.
-
-Before live deployment, the system would still need:
-
-1. real-time broker quotes
-2. real bid/ask and execution-quality checks
-3. order acknowledgements, partial fills, rejects, cancels and replacements
-4. real short availability and borrow costs
-5. verified Moomoo API permissions and order types
-6. real buying power and settlement handling
-7. trading-halt/volatility-interruption handling
-8. reconnect and retry protection
-9. broker/account reconciliation
-10. independent kill switches and daily-loss controls
-11. secure credential management
-12. monitoring and alerts
-
-A safer transfer path is:
+The intended migration path is:
 
 ```text
 Final V1 public-data simulation
         ->
-real-time broker market data + simulation
+Moomoo real-time market data + same simulation engine
         ->
 Moomoo API paper trading
         ->
-shadow mode
+shadow mode against live quotes
         ->
 small-capital live pilot with hard kill switch
         ->
 larger deployment only if live evidence supports it
 ```
+
+A live release should not occur until simulation and paper results are compared using the same decision IDs, timestamps, signals, position-sizing rules and exit reasons.
 
 ## Important limitations
 
@@ -298,9 +334,9 @@ larger deployment only if live evidence supports it
 - 5-minute bars rather than tick/order-book data
 - GitHub-hosted infrastructure is not exchange-grade
 - simplified slippage/fill assumptions
-- no realistic partial-fill model
-- no realistic short borrow/locate fee model
-- no live broker reconciliation
+- no realistic partial-fill model yet
+- no realistic short borrow/locate fee model yet
+- no live broker reconciliation yet
 - data-provider failures are possible
 - LLM outputs can be wrong
 - stops reduce planned risk but cannot guarantee real execution price
