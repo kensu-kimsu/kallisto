@@ -8,8 +8,8 @@ A six-month **simulation-only** research experiment testing whether an autonomou
 
 This project is built on and inspired by **Nathan Smith / LuckyOne7777**:
 
-- [LLM-Investor-Behavior-Benchmark](https://github.com/LuckyOne7777/LLM-Investor-Behavior-Benchmark)
-- [LLM-Trading-Lab](https://github.com/LuckyOne7777/LLM-Trading-Lab)
+- LLM-Investor-Behavior-Benchmark
+- LLM-Trading-Lab
 
 The original MIT license and copyright notice are retained.
 
@@ -22,7 +22,8 @@ Positive returns and benchmark outperformance are objectives, not guarantees.
 ## Final V1 baseline
 
 - Starting capital: **$1,000 USD**
-- Clean Final V1 start: **2026-10-08 NYSE session**
+- Clean Day 1: **the first complete Azure-hosted NYSE session after deployment**
+- Oct 7-8 infrastructure attempts are excluded from the clean performance series
 - No external deposits
 - No leverage
 - No options
@@ -31,190 +32,92 @@ Positive returns and benchmark outperformance are objectives, not guarantees.
 - No overnight positions
 - No manual trade approval
 
-The Oct 7 run was an infrastructure/prelaunch test and is excluded from the clean Final V1 performance series.
+## Azure Functions runtime
 
-## Trading universe
-
-Each NYSE trading day begins with two source universes.
-
-### Microcaps
-
-- major U.S. exchanges
-- market capitalization below $300 million
-- approximately top **8** eligible names by premarket volume
-
-### Nasdaq Titans
-
-- approximately the top 20 distinct Nasdaq-listed companies by market capitalization
-- approximately top **8** available names by premarket volume
-
-The two lists are combined into the intraday candidate set.
-
-## Intraday architecture
+Final V1 now uses **Azure Functions as the trading clock**. The unreliable GitHub Actions market schedule has been retired and is manual-only.
 
 ```text
-Premarket volume scan
+Azure timer trigger every 5 minutes on weekdays
         ->
-5-minute market data
+restore state from Azure Blob Storage
         ->
-technical + fundamental context
+NYSE calendar/time guard
         ->
-GPT-5.6 Luna decision every ~15 minutes
+5-minute market data + position monitoring
+        ->
+GPT-5.6 Luna decision when ~15-minute cadence is due
         ->
 deterministic risk engine
         ->
-hypothetical LONG / SHORT entry
+hypothetical LONG / SHORT execution
         ->
-5-minute position monitoring
+persist state + reports to Azure Blob Storage
         ->
-stop / target / time-stop / EOD exit
-        ->
-GitHub checkpoint + reporting
+function exits
 ```
 
-GitHub Actions no longer needs to wake the strategy for every decision. Two persistent session runners are launched each market day and the Python process itself cycles every five minutes.
+The timer runs on a five-minute weekday cadence while the Python strategy itself decides whether the current New York time is inside the experiment window. This avoids hard-coding daylight-saving changes into UTC schedules.
 
-## Live-transfer design
-
-Final V1 is being structured so the **decision and risk logic can be reused** when moving to Moomoo Australia paper/live trading.
-
-The key rule is:
+Runtime entry point:
 
 ```text
-LLM proposes a trade
-        ->
-deterministic risk manager approves/rejects
-        ->
-execution adapter handles broker-specific work
+function_app.py
 ```
 
-The LLM must never directly submit unrestricted broker orders.
-
-Broker-neutral interfaces are defined in:
+Azure state adapter:
 
 ```text
-user_side/personal_experiment/scalping_interfaces.py
+user_side/personal_experiment/azure_runtime.py
 ```
 
-Current Final V1 uses:
+Azure deployment guide:
 
 ```text
-MarketDataProvider -> yfinance/public 5-minute data
-ExecutionGateway  -> deterministic simulation engine
+docs/experiment/azure-functions-deployment.md
 ```
 
-A future Moomoo adapter should replace only those external-facing layers while preserving the same strategy, risk controls, timing rules, trade schema, and reporting logic.
+## Trading universe
 
-For a future Moomoo AU deployment, the adapter must add real-time quotes/order book/trade events, broker account and positions, buying-power checks, order lifecycle, short eligibility, reconciliation, kill switches, secure OAuth/token handling, and forced-flat verification.
+Each trading day combines approximately the top **8 eligible microcaps by premarket volume** and top **8 available Nasdaq Titan candidates by premarket volume**.
 
-Detailed checklist:
+Technical inputs include premarket volume/change, VWAP, EMA 9/20, RSI(14), MACD, ATR, relative volume and opening-range levels. Fundamental context may include market cap, float, beta, valuation, profitability, growth, leverage, ROE and short interest when available.
 
-```text
-docs/experiment/moomoo-live-transfer.md
-```
-
-## What V1 results are transferable
-
-Transferable research outputs include premarket selection behavior, LLM setup choices, long/short direction, deterministic sizing, stop/target logic, trade frequency, holding time, drawdown behavior, benchmark-relative performance, and API operating cost.
-
-However, **the exact V1 P/L is not assumed to transfer 1:1 to real money**. Live results will differ because real trading includes bid/ask spread, latency, queue position, partial fills, rejects, halts, short availability, borrow cost, broker fees and market impact. The first transfer-validation stage must therefore be Moomoo paper trading using Moomoo market data and order lifecycle before any live-money deployment.
-
-## Professional scalping inputs
-
-Final V1 uses public, reproducible market-analysis concepts rather than claiming access to proprietary institutional models.
-
-Technical inputs include:
-
-- premarket volume and premarket change
-- VWAP
-- EMA 9 / EMA 20
-- RSI(14)
-- MACD and signal line
-- ATR-based volatility
-- relative intraday volume
-- opening-range high/low
-- opening-range breakout/breakdown
-
-The LLM is prompted to look for evidence-backed intraday patterns such as VWAP reclaim/rejection, opening-range breakout/breakdown, EMA continuation, failed breakout/breakdown reversal, and confirmed premarket-leader continuation.
-
-Fundamental context may include market cap, float, average volume, beta, valuation, profitability, growth, leverage, return on equity, and short interest when available.
-
-The LLM may only use supplied data and must not invent catalysts, Level 2 data, hidden order flow, proprietary signals, or undisclosed news.
+The LLM may only use supplied information and must not invent catalysts, Level 2 data, hidden order flow, proprietary signals or undisclosed news.
 
 ## Intraday timing
 
 - monitoring begins around **09:25 ET**
-- first new entries are allowed after **09:40 ET**
+- first entries allowed after **09:40 ET**
 - LLM decision cadence: approximately **15 minutes**
 - position monitoring cadence: approximately **5 minutes**
 - no new entries after **15:30 ET**
-- all remaining positions are forced flat around **15:55 ET**
-
-No position is intentionally carried overnight.
+- all remaining positions forced flat around **15:55 ET**
 
 ## Risk management
 
-The LLM proposes ticker, direction, target, confidence, and rationale. Deterministic code controls position size, stop distance, exposure, and portfolio-level safety.
+The LLM proposes ticker, direction, target, confidence and rationale. Deterministic code controls position size, stop distance, exposure and portfolio safety.
 
-Core protections include per-trade risk budgeting, combined open-risk limit, gross exposure, single-position cap, minimum cash reserve, daily-loss breaker, portfolio drawdown pause, maximum simultaneous positions, volatility stops, minimum reward-to-risk, breakeven protection, time-stop exits, and forced end-of-day flat.
+Core protections include per-trade risk budgeting, combined open-risk limit, gross exposure limit, single-position cap, cash reserve, daily-loss breaker, drawdown pause, maximum simultaneous positions, volatility stops, minimum reward/risk, breakeven protection, time-stop exits and forced end-of-day flat.
 
-Synthetic shorts reserve full notional capital; short-sale proceeds do not create extra buying power.
+## Experiment state
 
-## Execution assumptions
-
-Final V1 uses 5-minute public market bars. It is therefore an approximate intraday simulation, not a low-latency execution system.
-
-The simulator includes conservative slippage assumptions and treats ambiguous same-bar stop/target touches conservatively.
-
-Real execution can differ because of spreads, latency, liquidity, partial fills, halts, borrow availability, market impact, and broker rules.
-
-## GitHub Actions automation
-
-Workflow:
+During Azure execution the persistent source of truth is the Azure Blob container:
 
 ```text
-.github/workflows/daily-trading-experiment.yml
+scalping-v1-state/
+  state/portfolio_state.json
+  state/decision_log.jsonl
+  state/trade_log.csv
+  state/daily_performance.csv
+  state/api_costs.csv
+  reports/...
 ```
 
-Two persistent scheduled jobs cover the NYSE session: morning 09:25-12:25 ET and afternoon 12:25 to approximately 16:05 ET. Each process cycles every five minutes and checkpoints state back to GitHub.
-
-## Experiment data
-
-Final V1 state is stored under:
-
-```text
-user_side/runs/scalping_v1/
-```
-
-Important files:
-
-```text
-portfolio_state.json
-decision_log.jsonl
-trade_log.csv
-daily_performance.csv
-api_costs.csv
-```
-
-## Performance benchmarks
-
-Performance is compared against S&P 500 (`^GSPC`) and Nasdaq-100 (`^NDX`), normalized to the same $1,000 baseline.
-
-Generated chart:
-
-```text
-docs/results/scalping_equity_comparison.png
-```
+Repository copies under `user_side/runs/scalping_v1/` remain the initial/reference dataset and can be refreshed from Azure for reporting.
 
 ## OpenAI API cost tracking
 
-Every paid LLM decision records input, cached-input and output token usage plus an estimated USD cost in:
-
-```text
-user_side/runs/scalping_v1/api_costs.csv
-```
-
-Averages are calculated over active periods containing at least one API call.
+Every paid LLM decision records token usage and an estimated USD cost in `api_costs.csv`.
 
 <!-- API_COST_SUMMARY_START -->
 | Cost period | API cost (USD) | API calls | Input tokens | Output tokens |
@@ -225,48 +128,71 @@ Averages are calculated over active periods containing at least one API call.
 | **Total actual** | **$0.0000** | **0** | **0** | **0** |
 <!-- API_COST_SUMMARY_END -->
 
-Current cost calculations use the GPT-5.6 Luna pricing snapshot configured in `scalping_api_costs.py`. Repository cost figures are calculated estimates from API-reported token usage; OpenAI billing remains the source of truth.
+OpenAI billing remains the source of truth for actual API charges.
 
-## Daily reporting
+## GitHub Actions
 
-At the end of each NYSE session the experiment records starting/ending equity, daily/cumulative return, trade count, wins/losses, win rate, and normalized S&P 500/Nasdaq-100 values.
-
-## Path toward Moomoo Australia paper/live trading
-
-Current Moomoo OpenAPI documentation shows support for real-time quote/order-book/trade-event streaming, account/position access, order placement/modification/cancellation, simulated trading, and U.S. stock trading for Moomoo AU accounts. Paper trading supports U.S. stock short selling, but paper trading has limitations compared with live execution.
-
-The intended migration path is:
+GitHub is now used for source control, smoke testing and deployment—not as the live market clock.
 
 ```text
-Final V1 public-data simulation
-        ->
-Moomoo real-time market data + same simulation engine
-        ->
-Moomoo API paper trading
-        ->
-shadow mode against live quotes
-        ->
-small-capital live pilot with hard kill switch
-        ->
-larger deployment only if live evidence supports it
+.github/workflows/scalping-smoke-test.yml
+.github/workflows/deploy-azure-function.yml
+.github/workflows/daily-trading-experiment.yml   # legacy/manual only
 ```
 
-A live release should not occur until simulation and paper results are compared using the same decision IDs, timestamps, signals, position-sizing rules and exit reasons.
+The Azure deployment workflow is intentionally manual until Azure resources, repository variables and secrets have been configured.
+
+## Live-transfer design for Moomoo Australia
+
+Broker-neutral interfaces are defined in:
+
+```text
+user_side/personal_experiment/scalping_interfaces.py
+```
+
+Current Final V1:
+
+```text
+MarketDataProvider -> yfinance/public 5-minute data
+ExecutionGateway  -> deterministic simulation engine
+```
+
+Future Moomoo deployment:
+
+```text
+MoomooMarketDataProvider
+        ->
+same strategy + deterministic risk manager
+        ->
+MoomooExecutionGateway
+        ->
+order/fill monitoring + broker reconciliation
+```
+
+The LLM must never bypass the deterministic risk manager or directly send unrestricted broker orders.
+
+Detailed transfer checklist:
+
+```text
+docs/experiment/moomoo-live-transfer.md
+```
+
+Exact simulated P/L is **not** assumed to transfer 1:1 to real money because live trading adds spreads, latency, queue position, partial fills, rejects, halts, short availability, borrow costs, fees and market impact.
+
+## Validation rule for Day 1
+
+A day counts only if the Azure runtime actually executes market cycles. A legitimate zero-trade day is possible, but `decision_log.jsonl` must prove that the LLM evaluated eligible setups. A day with no decision records because the runtime failed does **not** count.
 
 ## Important limitations
 
 - public/delayed market-data limitations
 - 5-minute bars rather than tick/order-book data
-- GitHub-hosted infrastructure is not exchange-grade
 - simplified slippage/fill assumptions
 - no realistic partial-fill model yet
 - no realistic short borrow/locate fee model yet
 - no live broker reconciliation yet
 - data-provider failures are possible
 - LLM outputs can be wrong
-- stops reduce planned risk but cannot guarantee real execution price
-
-The experiment should be judged by the complete six-month record, including losses, no-trade periods, rejected decisions, data failures, API costs, and operational failures.
 
 ## License
 
@@ -278,7 +204,7 @@ Original copyright:
 
 ---
 
-**Status:** Final V1 active  
+**Status:** Azure migration ready for user resource setup  
 **Mode:** Simulation only  
 **Starting capital:** $1,000 USD  
 **Style:** Autonomous intraday scalping  
