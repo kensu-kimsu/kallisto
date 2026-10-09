@@ -1,10 +1,10 @@
-name: Final V1 LLM Scalping Experiment
+name: Legacy GitHub Scalping Runner (manual only)
 
 on:
   workflow_dispatch:
     inputs:
       segment:
-        description: "Run mode"
+        description: "Legacy test mode"
         required: true
         default: "single"
         type: choice
@@ -13,108 +13,43 @@ on:
           - morning
           - afternoon
 
-  schedule:
-    # GitHub cron is best-effort, so we no longer depend on it for every
-    # intraday decision. Instead, each scheduled job starts well before its
-    # market segment and remains alive, cycling every five minutes.
-    #
-    # 12:30 UTC = 08:30 ET during U.S. DST / 07:30 ET during standard time.
-    # The morning runner waits until 09:25 ET and stays alive through 12:25 ET.
-    - cron: "30 12 * * 1-5"
-    # 16:00 UTC = 12:00 ET during U.S. DST / 11:00 ET during standard time.
-    # The afternoon runner waits/queues until 12:25 ET and stays alive through EOD.
-    - cron: "0 16 * * 1-5"
-
 permissions:
   contents: write
 
 concurrency:
-  group: final-v1-scalping
+  group: final-v1-scalping-legacy
   cancel-in-progress: false
 
 jobs:
-  run-scalping-simulation:
+  legacy-test:
     runs-on: ubuntu-latest
     timeout-minutes: 350
-
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       PYTHONUNBUFFERED: "1"
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Configure Git identity
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: "pip"
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -e .
-
-      - name: Verify API key exists
+      - name: Run smoke tests
+        run: python -m unittest discover -s tests -p "test_scalping_smoke.py" -v
+      - name: Run legacy manual cycle/segment
         run: |
-          python -c "import os; print('OPENAI_API_KEY is set' if os.environ.get('OPENAI_API_KEY') else 'OPENAI_API_KEY is NOT set')"
-
-      - name: Validate final V1 Python
-        run: |
-          python -m py_compile user_side/personal_experiment/scalping_state.py
-          python -m py_compile user_side/personal_experiment/scalping_market_data.py
-          python -m py_compile user_side/personal_experiment/scalping_api_costs.py
-          python -m py_compile user_side/personal_experiment/scalping_strategy.py
-          python -m py_compile user_side/personal_experiment/scalping_engine.py
-          python -m py_compile user_side/personal_experiment/scalping_reporting.py
-          python -m py_compile user_side/personal_experiment/scalping_v1.py
-          python -m py_compile user_side/personal_experiment/scalping_session_runner.py
-
-      - name: Run deterministic smoke tests
-        run: |
-          python -m unittest discover -s tests -p "test_scalping_smoke.py" -v
-
-      - name: Resolve run mode
-        id: mode
-        shell: bash
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "segment=${{ inputs.segment }}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event.schedule }}" = "30 12 * * 1-5" ]; then
-            echo "segment=morning" >> "$GITHUB_OUTPUT"
+          if [ "${{ inputs.segment }}" = "single" ]; then
+            python -m user_side.personal_experiment.scalping_v1
           else
-            echo "segment=afternoon" >> "$GITHUB_OUTPUT"
+            python -m user_side.personal_experiment.scalping_session_runner --segment "${{ inputs.segment }}"
           fi
 
-      - name: Run single test cycle
-        if: steps.mode.outputs.segment == 'single'
-        run: |
-          python -m user_side.personal_experiment.scalping_v1
-
-      - name: Persist single-cycle state
-        if: steps.mode.outputs.segment == 'single'
-        run: |
-          git add -- user_side/runs/scalping_v1 README.md
-          if [ -d "docs/journal/daily" ]; then git add -- docs/journal/daily; fi
-          if [ -d "docs/results" ]; then git add -- docs/results; fi
-          if git diff --cached --quiet; then
-            echo "No simulation-state changes to commit."
-          else
-            git commit -m "experiment: update final V1 scalping state"
-            git pull --rebase origin main
-            git push origin main
-          fi
-
-      - name: Run persistent market segment
-        if: steps.mode.outputs.segment != 'single'
-        run: |
-          python -m user_side.personal_experiment.scalping_session_runner --segment "${{ steps.mode.outputs.segment }}"
+# IMPORTANT: scheduled NYSE-session automation has moved to Azure Functions.
+# This workflow intentionally has no cron schedule so GitHub Actions cannot
+# accidentally create a second trading clock or duplicate simulated trades.
