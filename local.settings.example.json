@@ -1,0 +1,9 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "<Azure Storage connection string>",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "OPENAI_API_KEY": "<store locally only; never commit the real key>",
+    "SCALPING_STATE_CONTAINER": "scalping-v1-state"
+  }
+}
