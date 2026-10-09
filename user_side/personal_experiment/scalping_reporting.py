@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import os
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -11,8 +12,10 @@ import pandas as pd
 from user_side.personal_experiment.scalping_state import DAILY_LOG
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-RESULTS_ROOT = PROJECT_ROOT / "docs" / "results"
-JOURNAL_ROOT = PROJECT_ROOT / "docs" / "journal" / "daily"
+DEFAULT_OUTPUT_ROOT = PROJECT_ROOT / "docs"
+OUTPUT_ROOT = Path(os.environ.get("SCALPING_OUTPUT_ROOT", str(DEFAULT_OUTPUT_ROOT)))
+RESULTS_ROOT = OUTPUT_ROOT / "results"
+JOURNAL_ROOT = OUTPUT_ROOT / "journal" / "daily"
 
 
 def create_daily_journal(row: dict, trades: list[dict]) -> Path:
