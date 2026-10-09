@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-RUN_ROOT = PROJECT_ROOT / "user_side" / "runs" / "scalping_v1"
+DEFAULT_RUN_ROOT = PROJECT_ROOT / "user_side" / "runs" / "scalping_v1"
+RUN_ROOT = Path(os.environ.get("SCALPING_RUN_ROOT", str(DEFAULT_RUN_ROOT)))
 STATE_PATH = RUN_ROOT / "portfolio_state.json"
 TRADE_LOG = RUN_ROOT / "trade_log.csv"
 DAILY_LOG = RUN_ROOT / "daily_performance.csv"
@@ -53,7 +55,6 @@ def ensure_state(starting_cash: float = 1000.0) -> None:
 
 def load_state() -> dict:
     state = json.loads(STATE_PATH.read_text(encoding="utf-8"))
-    # Backward-compatible defaults for state files created before these fields existed.
     state.setdefault("last_decision_et", None)
     state.setdefault("last_cycle_et", None)
     state.setdefault("premarket_candidates", [])
