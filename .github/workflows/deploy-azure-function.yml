@@ -5,6 +5,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   test-and-deploy:
@@ -41,11 +42,17 @@ jobs:
       - name: Run deterministic smoke tests
         run: python -m unittest discover -s tests -p "test_scalping_smoke.py" -v
 
+      - name: Login to Azure with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_501BA23DB0FE456AAE990757AE5479AB }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_ACAC2866925A426FA1F81AE07594385E }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_6E926333B8764652870065B657F6CFC8 }}
+
       - name: Deploy to Azure Function App
         uses: Azure/functions-action@v1
         with:
           app-name: ${{ vars.AZURE_FUNCTIONAPP_NAME }}
           package: "."
-          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
           sku: flexconsumption
           remote-build: true
