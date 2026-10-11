@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+  <title id="title">Kallisto fintech logo</title>
+  <desc id="desc">A deep-blue K monogram with orbital ring and market bars above the Kallisto wordmark.</desc>
+  <defs>
+    <linearGradient id="navy" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#03162d"/>
+      <stop offset="0.48" stop-color="#0b3f82"/>
+      <stop offset="1" stop-color="#00b7ff"/>
+    </linearGradient>
+    <linearGradient id="ice" x1="0" x2="1">
+      <stop offset="0" stop-color="#4bd8ff"/>
+      <stop offset="0.5" stop-color="#e6f7ff"/>
+      <stop offset="1" stop-color="#2389ff"/>
+    </linearGradient>
+    <linearGradient id="word" x1="0" x2="1">
+      <stop offset="0" stop-color="#08244b"/>
+      <stop offset="1" stop-color="#1460b5"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="9" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g transform="translate(75 50)">
+    <path d="M330 95 L465 210 L465 725 L330 800 Z" fill="url(#navy)" stroke="#34c9ff" stroke-width="3"/>
+    <path d="M492 425 L805 235 L930 245 L612 505 Z" fill="url(#navy)" stroke="#20b7ff" stroke-width="3"/>
+    <path d="M612 520 L922 785 L806 805 L515 575 Z" fill="url(#navy)" stroke="#7edcff" stroke-width="3"/>
+    <g opacity="0.95">
+      <rect x="385" y="540" width="34" height="98" rx="4" fill="#bfeaff"/>
+      <rect x="438" y="470" width="38" height="168" rx="4" fill="#63cfff"/>
+      <rect x="492" y="395" width="40" height="243" rx="4" fill="#159cff"/>
+      <rect x="548" y="325" width="42" height="313" rx="4" fill="#7ddfff"/>
+    </g>
+    <ellipse cx="620" cy="445" rx="470" ry="220" fill="none" stroke="url(#ice)" stroke-width="13" transform="rotate(-17 620 445)" opacity="0.96" filter="url(#glow)"/>
+    <circle cx="975" cy="206" r="28" fill="url(#navy)" stroke="#b6efff" stroke-width="4" filter="url(#glow)"/>
+  </g>
+  <text x="600" y="1030" text-anchor="middle" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="170" font-weight="700" letter-spacing="-8" fill="url(#word)">Kallisto</text>
+  <circle cx="683" cy="888" r="10" fill="#2dc9ff"/>
+</svg>
