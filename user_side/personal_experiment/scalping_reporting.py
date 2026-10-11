@@ -1,4 +1,4 @@
-"""Reporting for the simulation-only adaptive scalping study."""
+"""Reporting for the simulation-only Kallisto adaptive scalping study."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ IMPROVEMENT_LOG = RUN_ROOT / "improvement_metrics.csv"
 def create_daily_journal(row: dict, trades: list[dict]) -> Path:
     JOURNAL_ROOT.mkdir(parents=True, exist_ok=True)
     lines = [
-        f"# LLM Scalping V1 - {row['date']}", "", "> Simulation only. No live trades are placed.", "",
+        f"# Kallisto V1 - {row['date']}", "", "> Simulation only. No live trades are placed.", "",
         "## Portfolio", "", f"- Starting equity: ${float(row['starting_equity']):,.2f}",
         f"- Ending equity: ${float(row['ending_equity']):,.2f}", f"- Daily return: {float(row['daily_return_pct']):.2f}%",
         f"- Cumulative return: {float(row['cumulative_return_pct']):.2f}%", f"- Trades: {row['trades']}",
@@ -36,7 +36,7 @@ def create_daily_journal(row: dict, trades: list[dict]) -> Path:
     else:
         for trade in trades:
             lines.append(f"- {trade['ticker']} {trade['side']} | {trade['shares']} shares | P/L ${float(trade['pnl_usd']):,.2f} | {trade['exit_reason']}")
-    lines += ["", "## Automation", "", "- Autonomous simulation with bounded adaptive self-evaluation.", "- No manual trade approval.", "- All positions close in the same NYSE session.", ""]
+    lines += ["", "## Kallisto automation", "", "- Autonomous simulation with bounded adaptive self-evaluation.", "- No manual trade approval.", "- All positions close in the same NYSE session.", ""]
     path = JOURNAL_ROOT / f"{row['date']}.md"
     path.write_text("\n".join(lines), encoding="utf-8")
     return path
@@ -55,7 +55,7 @@ def refresh_charts() -> None:
         if not df.empty:
             df["date"] = pd.to_datetime(df["date"])
             plt.figure(figsize=(11, 6))
-            plt.plot(df["date"], df["ending_equity"], label="Adaptive LLM")
+            plt.plot(df["date"], df["ending_equity"], label="Kallisto Adaptive")
             if BASELINE_REPLAY_LOG.exists():
                 baseline = pd.read_csv(BASELINE_REPLAY_LOG)
                 if not baseline.empty:
@@ -64,7 +64,7 @@ def refresh_charts() -> None:
             plt.plot(df["date"], df["sp500_normalized"], linestyle="--", label="S&P 500")
             plt.plot(df["date"], df["nasdaq100_normalized"], linestyle="--", label="Nasdaq-100")
             plt.axhline(1000, linewidth=1)
-            plt.title("Adaptive LLM vs Frozen V1 Risk Replay and Market")
+            plt.title("Kallisto vs Frozen V1 Risk Replay and Market")
             plt.xlabel("Date"); plt.ylabel("Normalized value (USD)")
             plt.grid(alpha=0.25); plt.legend(); plt.tight_layout()
             plt.savefig(RESULTS_ROOT / "scalping_equity_comparison.png", dpi=160)
@@ -75,20 +75,20 @@ def refresh_charts() -> None:
         if not imp.empty:
             imp["date"] = pd.to_datetime(imp["date"])
             plt.figure(figsize=(11, 6))
-            plt.plot(imp["date"], imp["rolling_5_return_pct"], label="Adaptive 5-session return")
+            plt.plot(imp["date"], imp["rolling_5_return_pct"], label="Kallisto 5-session return")
             plt.plot(imp["date"], imp["rolling_5_sp500_pct"], linestyle="--", label="S&P 500 5-session return")
             plt.plot(imp["date"], imp["rolling_5_nasdaq100_pct"], linestyle="--", label="Nasdaq-100 5-session return")
             plt.axhline(0, linewidth=1)
-            plt.title("Measured Self-Improvement: Rolling 5-Session Performance")
+            plt.title("Kallisto Self-Improvement: Rolling 5-Session Performance")
             plt.xlabel("Date"); plt.ylabel("Return (%)")
             plt.grid(alpha=0.25); plt.legend(); plt.tight_layout()
             plt.savefig(RESULTS_ROOT / "self_improvement_returns.png", dpi=160)
             plt.close()
 
             plt.figure(figsize=(11, 6))
-            plt.plot(imp["date"], imp["rolling_5_alpha_pct"], label="Alpha vs stronger benchmark")
+            plt.plot(imp["date"], imp["rolling_5_alpha_pct"], label="Kallisto alpha vs stronger benchmark")
             plt.axhline(0, linewidth=1)
-            plt.title("Measured Self-Improvement: Rolling Alpha")
+            plt.title("Kallisto Self-Improvement: Rolling Alpha")
             plt.xlabel("Date"); plt.ylabel("Alpha (percentage points)")
             plt.grid(alpha=0.25); plt.legend(); plt.tight_layout()
             plt.savefig(RESULTS_ROOT / "self_improvement_alpha.png", dpi=160)
