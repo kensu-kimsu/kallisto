@@ -1,6 +1,6 @@
-# Final V1 API Usage and Cost Tracking
+# Kallisto V1 API Usage and Cost Tracking
 
-Final V1 records every paid OpenAI decision call in:
+Kallisto records every paid OpenAI trading-decision call and weekly evaluator call in:
 
 `user_side/runs/scalping_v1/api_costs.csv`
 
@@ -17,13 +17,13 @@ Each record includes:
 - output cost
 - total estimated cost for that API call
 
-The decision log also keeps the token/cost information beside the model decision for research traceability.
+Decision and evaluation logs keep token/cost information beside the associated model activity for research traceability.
 
 ## Pricing snapshot
 
-Final V1 currently uses `gpt-5.6-luna`.
+Kallisto V1 currently uses `gpt-5.6-luna`.
 
-The tracker is configured with the OpenAI standard text-token pricing published for GPT-5.6 Luna on 2026-10-08:
+The tracker is configured with this pricing table:
 
 | Token type | USD per 1M tokens |
 |---|---:|
@@ -31,26 +31,28 @@ The tracker is configured with the OpenAI standard text-token pricing published 
 | Cached input | $0.02 |
 | Output | $1.20 |
 
-The pricing values are deliberately stored in one module:
+The pricing values are stored in:
 
 `user_side/personal_experiment/scalping_api_costs.py`
 
-If the experiment changes model or OpenAI pricing changes, that table must be updated. OpenAI billing remains the source of truth; repository values are research estimates calculated from reported token usage.
+If Kallisto changes model or pricing changes, that table must be updated. OpenAI billing remains the source of truth; repository values are research estimates calculated from reported token usage.
 
 ## README running summary
 
-After every paid LLM decision call, the tracker refreshes a marked table in the repository README containing:
+The cost tracker maintains the marked API-cost summary used by the Kallisto README/dashboard when that README copy is available to the reporting process. Azure remains the source of runtime logs and GitHub's post-market documentation workflow refreshes repository-facing results.
+
+Tracked summary values include:
 
 - average cost per active trading day
 - average cost per active ISO week
 - average cost per active calendar month
-- total actual estimated API cost
-- corresponding average/total calls and token counts
-
-Averages are based on periods that contain at least one recorded API call. During a partially completed trading day/week/month, those running averages are naturally provisional.
+- total estimated API cost
+- corresponding calls and token counts
 
 ## Calls that cost $0 OpenAI API money
 
-OpenAI is not called when the NYSE is closed, before the decision window, after the entry cutoff, when the decision interval is not due, when no eligible candidate has usable data, or when a deterministic risk pause prevents a new decision.
+OpenAI is not called when the NYSE is closed, before the decision window, after the entry cutoff, when the decision interval is not due, or when no eligible candidate has usable data.
 
 Technical calculations, position monitoring, stop/target checks, benchmark calculations, chart generation, Git operations, and yfinance retrieval do not create OpenAI token charges.
+
+The bounded weekly self-evaluator does create an additional paid call when its 5-session review becomes due.
