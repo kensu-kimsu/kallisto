@@ -1,6 +1,6 @@
-"""Final V1 adaptive intraday scalping simulation.
+"""Kallisto V1 adaptive intraday scalping simulation.
 
-Simulation only: no broker connection, live orders, or money movement. The system
+Simulation only: no broker connection, live orders, or money movement. Kallisto
 uses public market data, LLM hypotheses, deterministic risk controls, hypothetical
 fills, a frozen V1 risk replay, and bounded self-evaluation.
 """
@@ -153,7 +153,7 @@ def finish_day(state: dict, now_et: datetime) -> None:
         record_improvement_snapshot(row["date"], BASELINE_REPLAY_LOG)
         evaluation = maybe_weekly_evaluate(now_et, BASELINE_REPLAY_LOG)
         if evaluation:
-            print(f"Weekly self-evaluation: {evaluation['old_version']} -> {evaluation['new_version']} | changed={evaluation['changed']}")
+            print(f"Kallisto weekly self-evaluation: {evaluation['old_version']} -> {evaluation['new_version']} | changed={evaluation['changed']}")
         refresh_charts()
     state["high_water_mark"] = max(float(state.get("high_water_mark", ending)), ending)
 
@@ -165,19 +165,19 @@ def main() -> None:
     state = load_state()
     now_et = datetime.now(NY)
     print("=" * 68)
-    print("FINAL V1 - ADAPTIVE AUTONOMOUS LLM SCALPING EXPERIMENT")
+    print("KALLISTO V1 - ADAPTIVE AUTONOMOUS AI SCALPING RESEARCH")
     print("SIMULATION ONLY - NO LIVE BROKERAGE ORDERS")
     print("=" * 68)
-    print(f"New York time: {now_et.isoformat()} | strategy version: {config['version']}")
+    print(f"New York time: {now_et.isoformat()} | Kallisto strategy version: {config['version']}")
 
     if str(now_et.date()) < FIRST_SESSION:
-        print(f"Experiment begins on NYSE session {FIRST_SESSION}.")
+        print(f"Kallisto experiment begins on NYSE session {FIRST_SESSION}.")
         return
     if not is_nyse_session(now_et.date()):
         print("NYSE is closed today.")
         return
     if now_et.time() < time(9, 25) or now_et.time() > time(16, 10):
-        print("Outside the intraday experiment window.")
+        print("Outside the Kallisto intraday experiment window.")
         return
 
     start_session(state, now_et)
@@ -189,7 +189,7 @@ def main() -> None:
         finish_day(state, now_et)
         state["last_cycle_et"] = now_et.isoformat()
         save_state(state)
-        print(f"EOD flat complete. Positions closed this cycle: {len(closed)}")
+        print(f"Kallisto EOD flat complete. Positions closed this cycle: {len(closed)}")
         return
 
     equity = mark_to_market(state, current_prices(state, now_et.date()))
@@ -205,7 +205,7 @@ def main() -> None:
         return
     if not decision_due(state, now_et):
         state["last_cycle_et"] = now_et.isoformat(); save_state(state)
-        print(f"Monitoring only: next LLM decision is on a {DECISION_INTERVAL_MINUTES}-minute cadence.")
+        print(f"Monitoring only: next Kallisto LLM decision is on a {DECISION_INTERVAL_MINUTES}-minute cadence.")
         return
 
     candidates = build_candidates(state, now_et)
@@ -215,7 +215,7 @@ def main() -> None:
         return
 
     candidate_map = {candidate["ticker"]: candidate for candidate in candidates}
-    prompt = build_prompt(state, candidates, now_et, config=config, track_name="Adaptive LLM")
+    prompt = build_prompt(state, candidates, now_et, config=config, track_name="Kallisto Adaptive")
     response, tokens = call_model(prompt, now_et)
     proposals = validate_proposals(response, set(candidate_map), config=config, candidate_map=candidate_map)
     opened = []
@@ -230,7 +230,7 @@ def main() -> None:
         "model_output": response, "accepted_proposals": proposals, "opened_positions": opened, "closed_positions": closed,
     })
     state["last_decision_et"] = now_et.isoformat(); state["last_cycle_et"] = now_et.isoformat(); save_state(state)
-    print(f"Candidates: {len(candidates)} | proposals: {len(proposals)} | opened: {len(opened)} | closed: {len(closed)} | version: {config['version']} | API cost: ${tokens['estimated_cost_usd']:.6f}")
+    print(f"Kallisto | candidates: {len(candidates)} | proposals: {len(proposals)} | opened: {len(opened)} | closed: {len(closed)} | version: {config['version']} | API cost: ${tokens['estimated_cost_usd']:.6f}")
 
 
 if __name__ == "__main__":
