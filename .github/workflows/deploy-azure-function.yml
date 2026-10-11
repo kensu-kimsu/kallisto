@@ -32,6 +32,7 @@ jobs:
           python -m py_compile function_app.py
           python -m py_compile user_side/personal_experiment/azure_runtime.py
           python -m py_compile user_side/personal_experiment/adaptive_learning.py
+          python -m py_compile user_side/personal_experiment/baseline_replay.py
           python -m py_compile user_side/personal_experiment/scalping_state.py
           python -m py_compile user_side/personal_experiment/scalping_market_data.py
           python -m py_compile user_side/personal_experiment/scalping_api_costs.py
