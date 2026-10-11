@@ -40,8 +40,10 @@ jobs:
           python -m py_compile user_side/personal_experiment/scalping_reporting.py
           python -m py_compile user_side/personal_experiment/scalping_v1.py
 
-      - name: Run deterministic smoke tests
-        run: python -m unittest discover -s tests -p "test_scalping_smoke.py" -v
+      - name: Run deterministic tests
+        run: |
+          python -m unittest discover -s tests -p "test_scalping_smoke.py" -v
+          python -m unittest discover -s tests -p "test_adaptive_learning.py" -v
 
       - name: Login to Azure with OIDC
         uses: azure/login@v2
