@@ -1,0 +1,65 @@
+name: Refresh Adaptive Experiment Dashboard
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 22 * * 1-5"
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  refresh-dashboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dashboard dependency
+        run: pip install azure-storage-blob
+
+      - name: Login to Azure with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_501BA23DB0FE456AAE990757AE5479AB }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_ACAC2866925A426FA1F81AE07594385E }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_6E926333B8764652870065B657F6CFC8 }}
+
+      - name: Read Function storage connection securely
+        shell: bash
+        run: |
+          CONN=$(az functionapp config appsettings list \
+            --name "${{ vars.AZURE_FUNCTIONAPP_NAME }}" \
+            --resource-group "rg-llm-scalper-v1" \
+            --query "[?name=='AzureWebJobsStorage'].value | [0]" -o tsv)
+          if [ -z "$CONN" ]; then
+            echo "AzureWebJobsStorage was not found." >&2
+            exit 1
+          fi
+          echo "::add-mask::$CONN"
+          echo "AZURE_STORAGE_CONNECTION_STRING=$CONN" >> "$GITHUB_ENV"
+
+      - name: Refresh README and charts from Azure
+        env:
+          SCALPING_STATE_CONTAINER: scalping-v1-state
+        run: python tools/refresh_adaptive_dashboard.py
+
+      - name: Commit refreshed experiment dashboard
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No dashboard changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md docs/results user_side/runs/scalping_v1
+          git commit -m "docs: refresh adaptive experiment dashboard"
+          git push
