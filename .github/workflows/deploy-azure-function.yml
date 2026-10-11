@@ -1,4 +1,4 @@
-name: Deploy Final V1 to Azure Functions
+name: Deploy Kallisto V1 to Azure Functions
 
 on:
   workflow_dispatch:
@@ -27,7 +27,7 @@ jobs:
           pip install -r requirements.txt
           pip install -e .
 
-      - name: Compile Azure + Final V1 + adaptive modules
+      - name: Compile Azure + Kallisto V1 + adaptive modules
         run: |
           python -m py_compile function_app.py
           python -m py_compile user_side/personal_experiment/azure_runtime.py
@@ -53,7 +53,7 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_ACAC2866925A426FA1F81AE07594385E }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_6E926333B8764652870065B657F6CFC8 }}
 
-      - name: Deploy to Azure Function App
+      - name: Deploy Kallisto to Azure Function App
         uses: Azure/functions-action@v1
         with:
           app-name: ${{ vars.AZURE_FUNCTIONAPP_NAME }}
