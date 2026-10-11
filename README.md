@@ -1,6 +1,6 @@
-# Final V1 - Autonomous LLM Scalping Experiment
+# Final V1 - Adaptive Autonomous LLM Scalping Experiment
 
-A six-month **simulation-only** research experiment testing whether an autonomous LLM-guided intraday scalping process can grow a $1,000 USD portfolio and outperform both the S&P 500 and Nasdaq-100.
+A six-month **simulation-only** research experiment testing whether an autonomous LLM-guided intraday scalping process can grow a $1,000 USD portfolio, improve through bounded self-evaluation, and outperform both the S&P 500 and Nasdaq-100.
 
 > This repository does not place live orders or move real money. Moomoo Australia is the intended future broker integration target, but Final V1 remains a simulation.
 
@@ -15,9 +15,9 @@ The original MIT license and copyright notice are retained.
 
 ## Research objective
 
-> Can a fully autonomous LLM-guided intraday strategy, constrained by deterministic risk controls and focused on premarket volume leaders, achieve positive simulated capital growth and outperform the S&P 500 and Nasdaq-100 over six months?
+> Can a fully autonomous LLM-guided intraday strategy, constrained by deterministic risk controls and a bounded learning loop, achieve positive simulated capital growth, improve over time, and outperform the S&P 500 and Nasdaq-100 over six months?
 
-Positive returns and benchmark outperformance are objectives, not guarantees.
+Positive returns, self-improvement and benchmark outperformance are research objectives, not guarantees.
 
 ## Final V1 baseline
 
@@ -32,12 +32,113 @@ Positive returns and benchmark outperformance are objectives, not guarantees.
 - No overnight positions
 - No manual trade approval
 
-## Azure Functions runtime
+## Adaptive self-learning loop
 
-Final V1 now uses **Azure Functions as the trading clock**. The unreliable GitHub Actions market schedule has been retired and is manual-only.
+The experiment now has a bounded self-evaluation layer. It does **not** retrain GPT weights. Instead, it learns by measuring its own completed trades and market-relative performance, then allowing the evaluator to update a small allow-list of strategy parameters and prompt guidance within hard-coded safety ranges.
 
 ```text
-Azure timer trigger every 5 minutes on weekdays
+market data
+    ->
+LLM trade decisions
+    ->
+simulated trades
+    ->
+trade + daily performance logs
+    ->
+weekly evaluator
+    ->
+measured metrics + diagnosis
+    ->
+bounded parameter proposal
+    ->
+deterministic validation / safety ranges
+    ->
+new strategy version (V1.1, V1.2, ...)
+    ->
+next trading period
+```
+
+The evaluator can tune only bounded items such as minimum confidence, per-trade risk within a narrow range, open-risk cap, exposure cap, position cap, cash reserve, reward/risk floor, maximum open positions, maximum holding time, minimum targets, and short evidence-based learning notes for the next prompt.
+
+The evaluator **cannot** remove the daily loss breaker, drawdown pause, same-day flat rule, no-leverage rule, no-options rule, or the hard parameter bounds.
+
+Learning cadence:
+
+- measurement is updated daily
+- self-evaluation runs every **5 completed NYSE sessions**
+- the first review is after the first full trading week
+- actual parameter changes cannot occur more often than every **10 completed sessions**
+- a change also requires at least **20 completed trades** and evaluator confidence of **0.60 or higher**
+- if evidence is weak, the evaluator records the review but makes **no change**
+- every accepted change is versioned and written to `strategy_versions.csv`
+
+Persistent adaptive files:
+
+```text
+adaptive_config.json
+weekly_evaluations.jsonl
+improvement_metrics.csv
+strategy_versions.csv
+baseline_replay.csv
+```
+
+The frozen `V1.0` risk replay provides a low-cost counterfactual control using the same realized trade sequence but the original V1 risk-sizing rules. This isolates risk-parameter changes. It is **not** a second independent LLM, so it does not fully isolate prompt-driven trade-selection changes.
+
+<!-- ADAPTIVE_DASHBOARD_START -->
+## Adaptive learning dashboard
+
+> The live values and graphs below are refreshed automatically from Azure after market sessions. Before Day 1 they remain at their initial values.
+
+| Metric | Current value |
+|---|---:|
+| Strategy version | **V1.0** |
+| Completed sessions | 0 |
+| Completed trades | 0 |
+| Adaptive equity | **$1,000.00** |
+| Adaptive cumulative return | **0.00%** |
+| Frozen V1.0 risk-replay equity | $1,000.00 |
+| Frozen V1.0 risk-replay return | 0.00% |
+| Adaptive vs frozen V1.0 risk replay | 0.00% |
+| S&P 500 return from experiment base | 0.00% |
+| Nasdaq-100 return from experiment base | 0.00% |
+| Rolling 5-session alpha vs stronger benchmark | 0.00 pp |
+| Rolling 5-session win rate | 0.00% |
+| Rolling 5-session profit factor | 0.00 |
+| Maximum drawdown | 0.00% |
+
+### Beating-the-market and frozen-V1 graph
+
+Generated after the first completed session:
+
+`docs/results/scalping_equity_comparison.png`
+
+### Self-improvement graphs
+
+Generated as evidence accumulates:
+
+`docs/results/self_improvement_returns.png`
+
+`docs/results/self_improvement_alpha.png`
+
+### Learning policy
+
+- Evaluation cadence: every 5 completed NYSE sessions.
+- First evaluation: after the first 5 completed sessions.
+- Parameter changes: no more often than every 10 completed sessions.
+- Evidence gate: at least 20 completed trades plus evaluator confidence of 0.60 or higher.
+- Hard risk limits remain bounded in deterministic code; the evaluator cannot remove them.
+- Every accepted change creates a new version and is recorded in `strategy_versions.csv`.
+- The frozen V1.0 replay isolates risk-sizing changes on the same realized trade sequence; it does not isolate prompt-driven trade-selection changes.
+<!-- ADAPTIVE_DASHBOARD_END -->
+
+## Azure Functions runtime
+
+Final V1 uses **Azure Functions Flex Consumption as the trading clock**. The old GitHub Actions market scheduler is retired and manual-only.
+
+```text
+Azure timer around U.S. market hours
+        ->
+cheap New York-time guard
         ->
 restore state from Azure Blob Storage
         ->
@@ -47,7 +148,7 @@ NYSE calendar/time guard
         ->
 GPT-5.6 Luna decision when ~15-minute cadence is due
         ->
-deterministic risk engine
+deterministic risk engine using current adaptive version
         ->
 hypothetical LONG / SHORT execution
         ->
@@ -56,25 +157,7 @@ persist state + reports to Azure Blob Storage
 function exits
 ```
 
-The timer runs on a five-minute weekday cadence while the Python strategy itself decides whether the current New York time is inside the experiment window. This avoids hard-coding daylight-saving changes into UTC schedules.
-
-Runtime entry point:
-
-```text
-function_app.py
-```
-
-Azure state adapter:
-
-```text
-user_side/personal_experiment/azure_runtime.py
-```
-
-Azure deployment guide:
-
-```text
-docs/experiment/azure-functions-deployment.md
-```
+The user's computer does not need to remain on once the Azure Function is deployed.
 
 ## Trading universe
 
@@ -110,14 +193,19 @@ scalping-v1-state/
   state/trade_log.csv
   state/daily_performance.csv
   state/api_costs.csv
-  reports/...
+  state/adaptive_config.json
+  state/weekly_evaluations.jsonl
+  state/improvement_metrics.csv
+  state/strategy_versions.csv
+  state/baseline_replay.csv
+  reports/results/...
 ```
 
-Repository copies under `user_side/runs/scalping_v1/` remain the initial/reference dataset and can be refreshed from Azure for reporting.
+A post-market GitHub Action refreshes README metrics and charts from Azure so the repository documents the live experiment automatically.
 
 ## OpenAI API cost tracking
 
-Every paid LLM decision records token usage and an estimated USD cost in `api_costs.csv`.
+Every paid trading-decision call and weekly evaluator call records token usage and estimated USD cost in `api_costs.csv`.
 
 <!-- API_COST_SUMMARY_START -->
 | Cost period | API cost (USD) | API calls | Input tokens | Output tokens |
@@ -132,56 +220,24 @@ OpenAI billing remains the source of truth for actual API charges.
 
 ## GitHub Actions
 
-GitHub is now used for source control, smoke testing and deployment—not as the live market clock.
+GitHub is used for source control, tests, deployment and post-market documentation refresh—not as the live market clock.
 
 ```text
 .github/workflows/scalping-smoke-test.yml
 .github/workflows/deploy-azure-function.yml
+.github/workflows/refresh-adaptive-dashboard.yml
 .github/workflows/daily-trading-experiment.yml   # legacy/manual only
 ```
 
-The Azure deployment workflow is intentionally manual until Azure resources, repository variables and secrets have been configured.
-
 ## Live-transfer design for Moomoo Australia
 
-Broker-neutral interfaces are defined in:
-
-```text
-user_side/personal_experiment/scalping_interfaces.py
-```
-
-Current Final V1:
-
-```text
-MarketDataProvider -> yfinance/public 5-minute data
-ExecutionGateway  -> deterministic simulation engine
-```
-
-Future Moomoo deployment:
-
-```text
-MoomooMarketDataProvider
-        ->
-same strategy + deterministic risk manager
-        ->
-MoomooExecutionGateway
-        ->
-order/fill monitoring + broker reconciliation
-```
-
-The LLM must never bypass the deterministic risk manager or directly send unrestricted broker orders.
-
-Detailed transfer checklist:
-
-```text
-docs/experiment/moomoo-live-transfer.md
-```
+Current Final V1 is simulation only. A future broker connection must preserve the deterministic risk manager and add broker reconciliation, stale-data kill switches, execution-state checks, order idempotency, short eligibility, partial-fill handling and verified end-of-day flat status.
 
 Exact simulated P/L is **not** assumed to transfer 1:1 to real money because live trading adds spreads, latency, queue position, partial fills, rejects, halts, short availability, borrow costs, fees and market impact.
 
 ## Validation rule for Day 1
 
-A day counts only if the Azure runtime actually executes market cycles. A legitimate zero-trade day is possible, but `decision_log.jsonl` must prove that the LLM evaluated eligible setups. A day with no decision records because the runtime failed does **not** count.
+A day counts only if Azure actually executes market cycles. A legitimate zero-trade day is possible, but `decision_log.jsonl` must prove that the LLM evaluated eligible setups. A day with no decision records because the runtime failed does **not** count.
 
 ## Important limitations
 
@@ -193,6 +249,8 @@ A day counts only if the Azure runtime actually executes market cycles. A legiti
 - no live broker reconciliation yet
 - data-provider failures are possible
 - LLM outputs can be wrong
+- adaptation can overfit noise despite the evidence gates
+- frozen V1 replay is a risk-control counterfactual, not a fully independent second LLM control arm
 
 ## License
 
@@ -204,10 +262,10 @@ Original copyright:
 
 ---
 
-**Status:** Azure migration ready for user resource setup  
+**Status:** Azure deployed; adaptive learning ready for first complete session  
 **Mode:** Simulation only  
 **Starting capital:** $1,000 USD  
-**Style:** Autonomous intraday scalping  
+**Style:** Adaptive autonomous intraday scalping  
 **Directions:** Long + synthetic unleveraged short  
 **Benchmark objective:** Beat S&P 500 and Nasdaq-100 over six months  
 **Duration:** 6 months
