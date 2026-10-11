@@ -13,6 +13,7 @@ on:
       - "user_side/personal_experiment/adaptive_learning.py"
       - "user_side/personal_experiment/azure_runtime.py"
       - "tests/test_scalping_smoke.py"
+      - "tests/test_adaptive_learning.py"
       - ".github/workflows/scalping-smoke-test.yml"
 
 permissions:
@@ -49,4 +50,6 @@ jobs:
           python -m py_compile user_side/personal_experiment/scalping_v1.py
           python -m py_compile user_side/personal_experiment/scalping_session_runner.py
       - name: Run deterministic smoke tests
-        run: python -m unittest discover -s tests -p "test_scalping_smoke.py" -v
+        run: |
+          python -m unittest discover -s tests -p "test_scalping_smoke.py" -v
+          python -m unittest discover -s tests -p "test_adaptive_learning.py" -v
