@@ -1,4 +1,4 @@
-"""Refresh README metrics/charts from Azure Blob Storage.
+"""Refresh the Kallisto README metrics/charts from Azure Blob Storage.
 
 Used by GitHub Actions after the NYSE session. It only reads simulation outputs
 and updates repository documentation; it does not place or simulate trades.
@@ -83,20 +83,20 @@ def _dashboard() -> str:
     sessions = int(_f(latest.get("sessions"), len(daily)))
     lines = [
         START,
-        "## Adaptive learning dashboard",
+        "## Kallisto adaptive learning dashboard",
         "",
-        "> Simulation only. The system evaluates itself weekly and may make bounded strategy changes only after enough evidence is available.",
+        "> Simulation only. Kallisto evaluates itself weekly and may make bounded strategy changes only after enough evidence is available.",
         "",
         "| Metric | Current value |",
         "|---|---:|",
         f"| Strategy version | **{current_version}** |",
         f"| Completed sessions | {sessions} |",
         f"| Completed trades | {len(trades)} |",
-        f"| Adaptive equity | **${equity:,.2f}** |",
-        f"| Adaptive cumulative return | **{cumulative:.2f}%** |",
+        f"| Kallisto adaptive equity | **${equity:,.2f}** |",
+        f"| Kallisto cumulative return | **{cumulative:.2f}%** |",
         f"| Frozen V1.0 risk-replay equity | ${baseline_equity:,.2f} |",
         f"| Frozen V1.0 risk-replay return | {baseline_return:.2f}% |",
-        f"| Adaptive vs frozen V1.0 risk replay | {vs_baseline:.2f}% |",
+        f"| Kallisto vs frozen V1.0 risk replay | {vs_baseline:.2f}% |",
         f"| S&P 500 return from experiment base | {sp_ret:.2f}% |",
         f"| Nasdaq-100 return from experiment base | {ndx_ret:.2f}% |",
         f"| Rolling 5-session alpha vs stronger benchmark | {alpha:.2f} pp |",
@@ -106,13 +106,13 @@ def _dashboard() -> str:
         "",
         "### Beating-the-market and frozen-V1 graph",
         "",
-        "![Adaptive LLM vs frozen V1 risk replay, S&P 500 and Nasdaq-100](docs/results/scalping_equity_comparison.png)",
+        "![Kallisto vs frozen V1 risk replay, S&P 500 and Nasdaq-100](docs/results/scalping_equity_comparison.png)",
         "",
-        "### Self-improvement graphs",
+        "### Kallisto self-improvement graphs",
         "",
-        "![Rolling 5-session adaptive performance](docs/results/self_improvement_returns.png)",
+        "![Kallisto rolling 5-session adaptive performance](docs/results/self_improvement_returns.png)",
         "",
-        "![Rolling alpha vs the stronger market benchmark](docs/results/self_improvement_alpha.png)",
+        "![Kallisto rolling alpha vs the stronger market benchmark](docs/results/self_improvement_alpha.png)",
         "",
         "### Learning policy",
         "",
