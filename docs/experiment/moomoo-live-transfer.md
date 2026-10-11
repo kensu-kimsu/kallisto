@@ -1,14 +1,15 @@
-# Moomoo Australia transfer checklist
+# Kallisto -> Moomoo Australia Transfer Checklist
 
-Final V1 remains simulation-only. This document defines what must stay identical and what must change before using the strategy with Moomoo Australia paper or live trading.
+Kallisto V1 remains simulation-only. This document defines what should stay conceptually consistent and what must change before using Kallisto with Moomoo Australia paper or live trading.
 
-## Keep unchanged
+## Preserve across environments
 
-The following should remain the same across simulation, paper and live environments so results can be compared fairly:
+The following should remain consistent across simulation, paper and live environments so results can be compared fairly:
 
-- premarket candidate-selection rules
+- Kallisto premarket candidate-selection rules
 - technical feature calculations and timestamps
 - LLM prompt policy and model version
+- adaptive-learning policy and strategy-version history
 - long/short proposal schema
 - deterministic position-sizing and portfolio-risk rules
 - entry cutoff and forced-flat policy
@@ -22,7 +23,7 @@ The public-data and synthetic execution layers must be swapped for broker-backed
 
 1. MarketDataProvider
    - real-time quotes
-   - bid/ask and order book
+   - bid/ask and order book where available
    - streaming K-lines / trades
    - market status and stale-data detection
 
@@ -41,7 +42,7 @@ The public-data and synthetic execution layers must be swapped for broker-backed
 
 For paper/live trading, the broker is authoritative for cash, buying power, positions, open orders, fills and order status.
 
-The local agent must reconcile against the broker after every order event. Any unexplained mismatch must trigger a fail-closed trading pause.
+The Kallisto live agent must reconcile against the broker after every order event. Any unexplained mismatch must trigger a fail-closed trading pause.
 
 ## Required live safety controls
 
@@ -62,17 +63,17 @@ Before real money is enabled:
 
 ## Transfer-validation sequence
 
-Use the same strategy in progressively more realistic environments:
+Use Kallisto progressively in more realistic environments:
 
-1. Final V1 public-data simulation.
+1. Kallisto V1 public-data simulation.
 2. Moomoo real-time market data while keeping hypothetical execution.
 3. Moomoo API paper trading using broker order lifecycle and broker positions.
 4. Shadow mode against live quotes: generate orders but do not submit them.
 5. Small-capital live pilot with hard limits and manual emergency kill switch.
-6. Scale only after paper/live statistics show that the simulated edge survives spreads, slippage, fill quality and broker constraints.
+6. Scale only after paper/live statistics show that any simulated edge survives spreads, slippage, fill quality and broker constraints.
 
 ## Result interpretation
 
-Final V1 strategy behavior is transferable; exact simulated P/L is not guaranteed to be transferable. The live-validation target is to measure the gap between intended and actual fills, simulated and actual slippage, simulated and broker-confirmed shortability, simulated and accepted trade count, and simulated versus paper/live P/L.
+Kallisto strategy behavior may be transferable; exact simulated P/L is not assumed to transfer. The live-validation target is to measure the gap between intended and actual fills, simulated and actual slippage, simulated and broker-confirmed shortability, simulated and accepted trade count, and simulated versus paper/live P/L.
 
-Those gaps should be reported explicitly rather than hidden, because they determine whether the strategy is truly deployable with real money.
+Those gaps should be reported explicitly rather than hidden, because they determine whether Kallisto is genuinely deployable with real money.
