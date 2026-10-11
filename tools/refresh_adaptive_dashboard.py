@@ -28,7 +28,7 @@ def _download() -> None:
     RESULTS_ROOT.mkdir(parents=True, exist_ok=True)
     state_names = [
         "daily_performance.csv", "trade_log.csv", "api_costs.csv", "adaptive_config.json",
-        "weekly_evaluations.jsonl", "improvement_metrics.csv", "strategy_versions.csv",
+        "weekly_evaluations.jsonl", "improvement_metrics.csv", "strategy_versions.csv", "baseline_replay.csv",
     ]
     for name in state_names:
         blob = container.get_blob_client(f"state/{name}")
@@ -63,11 +63,15 @@ def _dashboard() -> str:
     trades = _rows(RUN_ROOT / "trade_log.csv")
     improvement = _rows(RUN_ROOT / "improvement_metrics.csv")
     versions = _rows(RUN_ROOT / "strategy_versions.csv")
+    baseline = _rows(RUN_ROOT / "baseline_replay.csv")
     latest = improvement[-1] if improvement else {}
     d = daily[-1] if daily else {}
     current_version = latest.get("version") or (versions[-1].get("version") if versions else "V1.0")
     equity = _f(d.get("ending_equity"), 1000.0)
     cumulative = _f(d.get("cumulative_return_pct"), 0.0)
+    baseline_equity = _f(baseline[-1].get("ending_equity"), 1000.0) if baseline else 1000.0
+    baseline_return = (baseline_equity / 1000.0 - 1) * 100
+    vs_baseline = ((equity / baseline_equity) - 1) * 100 if baseline_equity else 0.0
     sp = _f(d.get("sp500_normalized"), 1000.0)
     ndx = _f(d.get("nasdaq100_normalized"), 1000.0)
     sp_ret = (sp / 1000.0 - 1) * 100
@@ -90,6 +94,9 @@ def _dashboard() -> str:
         f"| Completed trades | {len(trades)} |",
         f"| Adaptive equity | **${equity:,.2f}** |",
         f"| Adaptive cumulative return | **{cumulative:.2f}%** |",
+        f"| Frozen V1.0 risk-replay equity | ${baseline_equity:,.2f} |",
+        f"| Frozen V1.0 risk-replay return | {baseline_return:.2f}% |",
+        f"| Adaptive vs frozen V1.0 risk replay | {vs_baseline:.2f}% |",
         f"| S&P 500 return from experiment base | {sp_ret:.2f}% |",
         f"| Nasdaq-100 return from experiment base | {ndx_ret:.2f}% |",
         f"| Rolling 5-session alpha vs stronger benchmark | {alpha:.2f} pp |",
@@ -97,11 +104,11 @@ def _dashboard() -> str:
         f"| Rolling 5-session profit factor | {pf:.2f} |",
         f"| Maximum drawdown | {dd:.2f}% |",
         "",
-        "### Beating-the-market graph",
+        "### Beating-the-market and frozen-V1 graph",
         "",
-        "![Adaptive LLM vs S&P 500 and Nasdaq-100](docs/results/scalping_equity_comparison.png)",
+        "![Adaptive LLM vs frozen V1 risk replay, S&P 500 and Nasdaq-100](docs/results/scalping_equity_comparison.png)",
         "",
-        "### Self-improvement graph",
+        "### Self-improvement graphs",
         "",
         "![Rolling 5-session adaptive performance](docs/results/self_improvement_returns.png)",
         "",
@@ -115,6 +122,7 @@ def _dashboard() -> str:
         "- Evidence gate: at least 20 completed trades plus evaluator confidence of 0.60 or higher.",
         "- Hard risk limits remain bounded in deterministic code; the evaluator cannot remove them.",
         "- Every accepted change creates a new version (V1.1, V1.2, ...) and is recorded in `strategy_versions.csv`.",
+        "- The frozen V1.0 replay isolates risk-sizing changes on the same realized trade sequence; it is not a second independent LLM and therefore does not isolate prompt-driven trade-selection changes.",
         "",
         END,
     ]
