@@ -64,7 +64,7 @@ The deployment workflow uses the Azure-created OIDC client, tenant and subscript
 ## Deploy
 
 1. Open GitHub -> Actions.
-2. Select `Deploy Final V1 to Azure Functions`.
+2. Select `Deploy Kallisto V1 to Azure Functions`.
 3. Select `Run workflow` on branch `main`.
 4. Wait for compile checks, deterministic smoke tests, OIDC login, and Azure deployment to finish successfully.
 
