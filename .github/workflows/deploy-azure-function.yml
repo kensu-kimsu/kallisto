@@ -47,3 +47,5 @@ jobs:
           app-name: ${{ vars.AZURE_FUNCTIONAPP_NAME }}
           package: "."
           publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+          sku: flexconsumption
+          remote-build: true
