@@ -11,6 +11,7 @@ on:
       - "requirements.txt"
       - "user_side/personal_experiment/scalping_*.py"
       - "user_side/personal_experiment/adaptive_learning.py"
+      - "user_side/personal_experiment/baseline_replay.py"
       - "user_side/personal_experiment/azure_runtime.py"
       - "tests/test_scalping_smoke.py"
       - "tests/test_adaptive_learning.py"
@@ -41,6 +42,7 @@ jobs:
           python -m py_compile function_app.py
           python -m py_compile user_side/personal_experiment/azure_runtime.py
           python -m py_compile user_side/personal_experiment/adaptive_learning.py
+          python -m py_compile user_side/personal_experiment/baseline_replay.py
           python -m py_compile user_side/personal_experiment/scalping_state.py
           python -m py_compile user_side/personal_experiment/scalping_market_data.py
           python -m py_compile user_side/personal_experiment/scalping_api_costs.py
