@@ -1,12 +1,16 @@
-# Final V1 - Adaptive Autonomous LLM Scalping Experiment
+![Kallisto banner](assets/branding/kallisto-banner.svg)
 
-A six-month **simulation-only** research experiment testing whether an autonomous LLM-guided intraday scalping process can grow a $1,000 USD portfolio, improve through bounded self-evaluation, and outperform both the S&P 500 and Nasdaq-100.
+# Kallisto
 
-> This repository does not place live orders or move real money. Moomoo Australia is the intended future broker integration target, but Final V1 remains a simulation.
+**Kallisto** is a six-month, **simulation-only**, adaptive AI intraday scalping research platform. It tests whether an autonomous LLM-guided process can grow a $1,000 USD portfolio, improve through bounded self-evaluation, and outperform both the S&P 500 and Nasdaq-100.
+
+<p align="center"><img src="assets/branding/kallisto-logo.svg" alt="Kallisto logo" width="280"></p>
+
+> Kallisto does not place live orders or move real money. Moomoo Australia is the intended future broker-integration target, but the current platform remains a simulation.
 
 ## Original project and attribution
 
-This project is built on and inspired by **Nathan Smith / LuckyOne7777**:
+Kallisto is built on and inspired by **Nathan Smith / LuckyOne7777**:
 
 - LLM-Investor-Behavior-Benchmark
 - LLM-Trading-Lab
@@ -19,7 +23,7 @@ The original MIT license and copyright notice are retained.
 
 Positive returns, self-improvement and benchmark outperformance are research objectives, not guarantees.
 
-## Final V1 baseline
+## Kallisto V1 baseline
 
 - Starting capital: **$1,000 USD**
 - Clean Day 1: **the first complete Azure-hosted NYSE session after deployment**
@@ -34,12 +38,12 @@ Positive returns, self-improvement and benchmark outperformance are research obj
 
 ## Adaptive self-learning loop
 
-The experiment now has a bounded self-evaluation layer. It does **not** retrain GPT weights. Instead, it learns by measuring its own completed trades and market-relative performance, then allowing the evaluator to update a small allow-list of strategy parameters and prompt guidance within hard-coded safety ranges.
+Kallisto has a bounded self-evaluation layer. It does **not** retrain GPT weights. Instead, it learns by measuring its completed trades and market-relative performance, then allowing the evaluator to update a small allow-list of strategy parameters and prompt guidance within hard-coded safety ranges.
 
 ```text
 market data
     ->
-LLM trade decisions
+Kallisto LLM trade decisions
     ->
 simulated trades
     ->
@@ -53,7 +57,7 @@ bounded parameter proposal
     ->
 deterministic validation / safety ranges
     ->
-new strategy version (V1.1, V1.2, ...)
+new Kallisto strategy version (V1.1, V1.2, ...)
     ->
 next trading period
 ```
@@ -85,7 +89,7 @@ baseline_replay.csv
 The frozen `V1.0` risk replay provides a low-cost counterfactual control using the same realized trade sequence but the original V1 risk-sizing rules. This isolates risk-parameter changes. It is **not** a second independent LLM, so it does not fully isolate prompt-driven trade-selection changes.
 
 <!-- ADAPTIVE_DASHBOARD_START -->
-## Adaptive learning dashboard
+## Kallisto adaptive learning dashboard
 
 > The live values and graphs below are refreshed automatically from Azure after market sessions. Before Day 1 they remain at their initial values.
 
@@ -133,14 +137,14 @@ Generated as evidence accumulates:
 
 ## Azure Functions runtime
 
-Final V1 uses **Azure Functions Flex Consumption as the trading clock**. The old GitHub Actions market scheduler is retired and manual-only.
+Kallisto V1 uses **Azure Functions Flex Consumption as the trading clock**. The old GitHub Actions market scheduler is retired and manual-only.
 
 ```text
 Azure timer around U.S. market hours
         ->
 cheap New York-time guard
         ->
-restore state from Azure Blob Storage
+restore Kallisto state from Azure Blob Storage
         ->
 NYSE calendar/time guard
         ->
@@ -201,7 +205,7 @@ scalping-v1-state/
   reports/results/...
 ```
 
-A post-market GitHub Action refreshes README metrics and charts from Azure so the repository documents the live experiment automatically.
+A post-market GitHub Action refreshes README metrics and charts from Azure so the repository documents the live Kallisto experiment automatically.
 
 ## OpenAI API cost tracking
 
@@ -231,7 +235,7 @@ GitHub is used for source control, tests, deployment and post-market documentati
 
 ## Live-transfer design for Moomoo Australia
 
-Current Final V1 is simulation only. A future broker connection must preserve the deterministic risk manager and add broker reconciliation, stale-data kill switches, execution-state checks, order idempotency, short eligibility, partial-fill handling and verified end-of-day flat status.
+Kallisto V1 is simulation only. A future broker connection must preserve the deterministic risk manager and add broker reconciliation, stale-data kill switches, execution-state checks, order idempotency, short eligibility, partial-fill handling and verified end-of-day flat status.
 
 Exact simulated P/L is **not** assumed to transfer 1:1 to real money because live trading adds spreads, latency, queue position, partial fills, rejects, halts, short availability, borrow costs, fees and market impact.
 
@@ -262,6 +266,7 @@ Original copyright:
 
 ---
 
+**Product name:** Kallisto  
 **Status:** Azure deployed; adaptive learning ready for first complete session  
 **Mode:** Simulation only  
 **Starting capital:** $1,000 USD  
