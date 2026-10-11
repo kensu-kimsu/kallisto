@@ -10,6 +10,7 @@ on:
       - "host.json"
       - "requirements.txt"
       - "user_side/personal_experiment/scalping_*.py"
+      - "user_side/personal_experiment/adaptive_learning.py"
       - "user_side/personal_experiment/azure_runtime.py"
       - "tests/test_scalping_smoke.py"
       - ".github/workflows/scalping-smoke-test.yml"
@@ -34,10 +35,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -e .
-      - name: Compile Final V1 + Azure modules
+      - name: Compile Final V1 + Azure + adaptive modules
         run: |
           python -m py_compile function_app.py
           python -m py_compile user_side/personal_experiment/azure_runtime.py
+          python -m py_compile user_side/personal_experiment/adaptive_learning.py
           python -m py_compile user_side/personal_experiment/scalping_state.py
           python -m py_compile user_side/personal_experiment/scalping_market_data.py
           python -m py_compile user_side/personal_experiment/scalping_api_costs.py
