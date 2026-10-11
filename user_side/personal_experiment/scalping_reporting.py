@@ -8,6 +8,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from user_side.personal_experiment.baseline_replay import BASELINE_REPLAY_LOG, refresh_baseline_replay
 from user_side.personal_experiment.scalping_state import DAILY_LOG
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -17,21 +18,17 @@ RESULTS_ROOT = OUTPUT_ROOT / "results"
 JOURNAL_ROOT = OUTPUT_ROOT / "journal" / "daily"
 RUN_ROOT = Path(os.environ.get("SCALPING_RUN_ROOT", str(PROJECT_ROOT / "user_side" / "runs" / "scalping_v1")))
 IMPROVEMENT_LOG = RUN_ROOT / "improvement_metrics.csv"
-VERSION_LOG = RUN_ROOT / "strategy_versions.csv"
 
 
 def create_daily_journal(row: dict, trades: list[dict]) -> Path:
     JOURNAL_ROOT.mkdir(parents=True, exist_ok=True)
     lines = [
         f"# LLM Scalping V1 - {row['date']}", "", "> Simulation only. No live trades are placed.", "",
-        "## Portfolio", "",
-        f"- Starting equity: ${float(row['starting_equity']):,.2f}",
-        f"- Ending equity: ${float(row['ending_equity']):,.2f}",
-        f"- Daily return: {float(row['daily_return_pct']):.2f}%",
-        f"- Cumulative return: {float(row['cumulative_return_pct']):.2f}%",
-        f"- Trades: {row['trades']}", f"- Wins: {row['wins']}", f"- Losses: {row['losses']}",
-        f"- Win rate: {float(row['win_rate_pct']):.2f}%", "", "## Benchmarks", "",
-        f"- S&P 500 normalized value: ${float(row['sp500_normalized']):,.2f}",
+        "## Portfolio", "", f"- Starting equity: ${float(row['starting_equity']):,.2f}",
+        f"- Ending equity: ${float(row['ending_equity']):,.2f}", f"- Daily return: {float(row['daily_return_pct']):.2f}%",
+        f"- Cumulative return: {float(row['cumulative_return_pct']):.2f}%", f"- Trades: {row['trades']}",
+        f"- Wins: {row['wins']}", f"- Losses: {row['losses']}", f"- Win rate: {float(row['win_rate_pct']):.2f}%",
+        "", "## Benchmarks", "", f"- S&P 500 normalized value: ${float(row['sp500_normalized']):,.2f}",
         f"- Nasdaq-100 normalized value: ${float(row['nasdaq100_normalized']):,.2f}", "", "## Closed trades", "",
     ]
     if not trades:
@@ -51,16 +48,23 @@ def refresh_chart() -> None:
 
 def refresh_charts() -> None:
     RESULTS_ROOT.mkdir(parents=True, exist_ok=True)
+    refresh_baseline_replay()
+
     if DAILY_LOG.exists():
         df = pd.read_csv(DAILY_LOG)
         if not df.empty:
             df["date"] = pd.to_datetime(df["date"])
             plt.figure(figsize=(11, 6))
             plt.plot(df["date"], df["ending_equity"], label="Adaptive LLM")
+            if BASELINE_REPLAY_LOG.exists():
+                baseline = pd.read_csv(BASELINE_REPLAY_LOG)
+                if not baseline.empty:
+                    baseline["date"] = pd.to_datetime(baseline["date"])
+                    plt.plot(baseline["date"], baseline["ending_equity"], linestyle=":", label="Frozen V1.0 risk replay")
             plt.plot(df["date"], df["sp500_normalized"], linestyle="--", label="S&P 500")
             plt.plot(df["date"], df["nasdaq100_normalized"], linestyle="--", label="Nasdaq-100")
             plt.axhline(1000, linewidth=1)
-            plt.title("Adaptive LLM vs Market Benchmarks")
+            plt.title("Adaptive LLM vs Frozen V1 Risk Replay and Market")
             plt.xlabel("Date"); plt.ylabel("Normalized value (USD)")
             plt.grid(alpha=0.25); plt.legend(); plt.tight_layout()
             plt.savefig(RESULTS_ROOT / "scalping_equity_comparison.png", dpi=160)
