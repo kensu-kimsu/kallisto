@@ -40,6 +40,12 @@ def _shares_for_trade(equity: float, trade: dict) -> int:
     entry = float(trade["entry_price"])
     stop = float(trade["stop_price"])
     per_share_risk = abs(entry - stop)
+    # The live simulation may have moved the stored stop to breakeven before the
+    # trade closed. If so, reconstruct the minimum original V1 stop distance so
+    # the frozen replay does not incorrectly size the trade at zero shares.
+    if entry > 0 and per_share_risk < entry * 0.0001:
+        fallback_stop_pct = 0.006 if trade.get("universe") == "microcap" else 0.003
+        per_share_risk = entry * fallback_stop_pct
     if entry <= 0 or per_share_risk <= 0:
         return 0
     by_risk = int((equity * RISK_PER_TRADE_PCT) / per_share_risk)
@@ -60,10 +66,7 @@ def refresh_baseline_replay() -> Path:
             exit_price = float(trade["exit_price"])
         except (KeyError, TypeError, ValueError):
             continue
-        if trade.get("side") == "SHORT":
-            pnl = shares * (entry - exit_price)
-        else:
-            pnl = shares * (exit_price - entry)
+        pnl = shares * (entry - exit_price) if trade.get("side") == "SHORT" else shares * (exit_price - entry)
         equity += pnl
         day = trade.get("session_date") or datetime.fromisoformat(trade["closed_at"]).date().isoformat()
         by_date[day]["trades"] += 1
