@@ -2,7 +2,7 @@
 
 Simulation only: this module never connects to a broker, never submits live orders,
 and never moves money. It uses public market data, LLM-generated hypotheses,
-deterministic risk limits, and hypothetical fills.
+deterministic risk limits, hypothetical fills, and bounded self-evaluation.
 """
 
 from __future__ import annotations
@@ -13,6 +13,12 @@ from zoneinfo import ZoneInfo
 
 import pandas_market_calendars as mcal
 
+from user_side.personal_experiment.adaptive_learning import (
+    ensure_learning_state,
+    load_config,
+    maybe_weekly_evaluate,
+    record_improvement_snapshot,
+)
 from user_side.personal_experiment.scalping_engine import (
     DAILY_LOSS_LIMIT_PCT,
     close_simulated_trade,
@@ -28,7 +34,7 @@ from user_side.personal_experiment.scalping_market_data import (
 )
 from user_side.personal_experiment.scalping_reporting import (
     create_daily_journal,
-    refresh_chart,
+    refresh_charts,
 )
 from user_side.personal_experiment.scalping_state import (
     DAILY_FIELDS,
@@ -95,7 +101,7 @@ def current_prices(state: dict, day) -> dict[str, float]:
     return prices
 
 
-def monitor_positions(state: dict, now_et: datetime) -> list[dict]:
+def monitor_positions(state: dict, now_et: datetime, config: dict) -> list[dict]:
     closed = []
     for ticker in list(state.get("positions", {})):
         pos = state["positions"].get(ticker)
@@ -106,13 +112,10 @@ def monitor_positions(state: dict, now_et: datetime) -> list[dict]:
             continue
         opened = datetime.fromisoformat(pos["opened_at"])
         last_cycle = state.get("last_cycle_et")
-        if last_cycle:
-            floor = max(opened, datetime.fromisoformat(last_cycle))
-        else:
-            floor = opened
+        floor = max(opened, datetime.fromisoformat(last_cycle)) if last_cycle else opened
         bars = bars.loc[(bars.index > floor) & (bars.index <= now_et)]
         for ts, bar in bars.iterrows():
-            result = evaluate_bar(pos, bar, ts.to_pydatetime())
+            result = evaluate_bar(pos, bar, ts.to_pydatetime(), config=config)
             if result is None:
                 continue
             exit_price, reason = result
@@ -150,10 +153,8 @@ def force_flat(state: dict, now_et: datetime) -> list[dict]:
 def build_candidates(state: dict, now_et: datetime) -> list[dict]:
     if not state.get("premarket_candidates"):
         state["premarket_candidates"] = scan_premarket(
-            now_et.date(),
-            leaders_per_universe=PREMARKET_LEADERS_PER_UNIVERSE,
+            now_et.date(), leaders_per_universe=PREMARKET_LEADERS_PER_UNIVERSE
         )
-
     candidates = []
     for item in state["premarket_candidates"]:
         tech = technical_snapshot(item["ticker"], now_et.date())
@@ -180,7 +181,6 @@ def read_today_trades(day) -> list[dict]:
 def finish_day(state: dict, now_et: datetime) -> None:
     if state.get("positions"):
         raise RuntimeError("Cannot write daily summary while simulated positions remain open.")
-
     ending = float(state["cash"])
     start = float(state["session_start_equity"])
     daily_return = ((ending / start) - 1) * 100 if start else 0.0
@@ -189,16 +189,13 @@ def finish_day(state: dict, now_et: datetime) -> None:
     wins = sum(float(t["pnl_usd"]) > 0 for t in trades)
     losses = sum(float(t["pnl_usd"]) < 0 for t in trades)
     win_rate = (wins / len(trades) * 100) if trades else 0.0
-
     sp = latest_price("^GSPC", now_et.date())
     ndx = latest_price("^NDX", now_et.date())
     base = state.setdefault("benchmark_base", {})
     sp_norm = 1000.0 * sp / base["sp500"] if sp and base.get("sp500") else 1000.0
     ndx_norm = 1000.0 * ndx / base["nasdaq100"] if ndx and base.get("nasdaq100") else 1000.0
-
     with DAILY_LOG.open("r", encoding="utf-8", newline="") as f:
         existing_dates = {row["date"] for row in csv.DictReader(f)}
-
     row = {
         "date": str(now_et.date()),
         "starting_equity": round(start, 4),
@@ -213,28 +210,32 @@ def finish_day(state: dict, now_et: datetime) -> None:
         "sp500_normalized": round(sp_norm, 4),
         "nasdaq100_normalized": round(ndx_norm, 4),
     }
-
     if row["date"] not in existing_dates:
         append_row(DAILY_LOG, DAILY_FIELDS, row)
         create_daily_journal(row, trades)
-        refresh_chart()
-
-    state["high_water_mark"] = max(
-        float(state.get("high_water_mark", ending)),
-        ending,
-    )
+        record_improvement_snapshot(row["date"])
+        evaluation = maybe_weekly_evaluate(now_et)
+        if evaluation:
+            print(
+                f"Weekly self-evaluation: {evaluation['old_version']} -> "
+                f"{evaluation['new_version']} | changed={evaluation['changed']}"
+            )
+        refresh_charts()
+    state["high_water_mark"] = max(float(state.get("high_water_mark", ending)), ending)
 
 
 def main() -> None:
     ensure_state(STARTING_CASH)
+    ensure_learning_state()
+    config = load_config()
     state = load_state()
     now_et = datetime.now(NY)
 
     print("=" * 68)
-    print("FINAL V1 - AUTONOMOUS LLM SCALPING EXPERIMENT")
+    print("FINAL V1 - ADAPTIVE AUTONOMOUS LLM SCALPING EXPERIMENT")
     print("SIMULATION ONLY - NO LIVE BROKERAGE ORDERS")
     print("=" * 68)
-    print(f"New York time: {now_et.isoformat()}")
+    print(f"New York time: {now_et.isoformat()} | strategy version: {config['version']}")
 
     if str(now_et.date()) < FIRST_SESSION:
         print(f"Experiment begins on NYSE session {FIRST_SESSION}.")
@@ -248,7 +249,7 @@ def main() -> None:
 
     start_session(state, now_et)
     initialise_benchmark_base(state, now_et.date())
-    closed = monitor_positions(state, now_et)
+    closed = monitor_positions(state, now_et, config)
 
     if now_et.time() >= FORCE_FLAT_TIME:
         closed.extend(force_flat(state, now_et))
@@ -266,15 +267,13 @@ def main() -> None:
     if now_et.time() < ENTRY_START:
         state["last_cycle_et"] = now_et.isoformat()
         save_state(state)
-        print("Monitoring only: waiting for the first 10 minutes of price discovery.")
+        print("Monitoring only: waiting for first 10 minutes of price discovery.")
         return
-
     if now_et.time() >= NEW_ENTRY_CUTOFF or state.get("paused"):
         state["last_cycle_et"] = now_et.isoformat()
         save_state(state)
         print("Monitoring only: entry cutoff or risk pause active.")
         return
-
     if not decision_due(state, now_et):
         state["last_cycle_et"] = now_et.isoformat()
         save_state(state)
@@ -289,14 +288,10 @@ def main() -> None:
         print("No eligible premarket-volume candidates with usable intraday data.")
         return
 
-    prompt = build_prompt(state, candidates, now_et)
-    response, tokens = call_model(prompt, now_et)
-    proposals = validate_proposals(
-        response,
-        {candidate["ticker"] for candidate in candidates},
-    )
     candidate_map = {candidate["ticker"]: candidate for candidate in candidates}
-
+    prompt = build_prompt(state, candidates, now_et, config=config, track_name="Adaptive LLM")
+    response, tokens = call_model(prompt, now_et)
+    proposals = validate_proposals(response, set(candidate_map), config=config, candidate_map=candidate_map)
     opened = []
     for proposal in proposals:
         prices = current_prices(state, now_et.date())
@@ -307,6 +302,7 @@ def main() -> None:
             candidate=candidate_map[proposal["ticker"]],
             now_et=now_et,
             current_equity=equity,
+            config=config,
         )
         if position is not None:
             opened.append(position)
@@ -314,20 +310,19 @@ def main() -> None:
     append_decision({
         "timestamp_et": now_et.isoformat(),
         "model": MODEL,
+        "strategy_version": config["version"],
         "tokens": tokens,
         "model_output": response,
         "accepted_proposals": proposals,
         "opened_positions": opened,
         "closed_positions": closed,
     })
-
     state["last_decision_et"] = now_et.isoformat()
     state["last_cycle_et"] = now_et.isoformat()
     save_state(state)
     print(
-        f"Candidates: {len(candidates)} | proposals: {len(proposals)} | "
-        f"opened: {len(opened)} | closed: {len(closed)} | "
-        f"API cost this decision: ${tokens['estimated_cost_usd']:.6f}"
+        f"Candidates: {len(candidates)} | proposals: {len(proposals)} | opened: {len(opened)} | "
+        f"closed: {len(closed)} | version: {config['version']} | API cost: ${tokens['estimated_cost_usd']:.6f}"
     )
 
 
