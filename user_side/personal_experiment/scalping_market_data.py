@@ -1,4 +1,11 @@
-"""Market-data helpers for the simulation-only scalping experiment."""
+"""Market-data helpers for the simulation-only Kallisto scalping experiment.
+
+The preferred candidate source is true 04:00-09:29 ET premarket activity. Yahoo
+occasionally omits extended-hours volume in cloud environments, so Kallisto has a
+clearly-labelled fallback: rank otherwise-eligible universe members by observed
+regular-session volume for the same day. The fallback is never represented to the
+LLM as genuine premarket data.
+"""
 
 from __future__ import annotations
 
@@ -8,22 +15,37 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 
-from user_side.personal_experiment.market_data.microcap_screener import (
-    get_microcap_universe,
-)
-from user_side.personal_experiment.market_data.titan_screener import (
-    get_titan_universe,
-)
+from user_side.personal_experiment.market_data.microcap_screener import get_microcap_universe
+from user_side.personal_experiment.market_data.titan_screener import get_titan_universe
 
 NY = ZoneInfo("America/New_York")
 
+# Last-resort Nasdaq universe used only if Yahoo's dynamic screener itself fails.
+# This prevents one upstream screener outage from disabling the whole experiment.
+STATIC_TITANS = [
+    ("NVDA", "NVIDIA"), ("AAPL", "Apple"), ("MSFT", "Microsoft"),
+    ("AMZN", "Amazon"), ("GOOGL", "Alphabet"), ("META", "Meta Platforms"),
+    ("AVGO", "Broadcom"), ("TSLA", "Tesla"), ("COST", "Costco"),
+    ("NFLX", "Netflix"), ("AMD", "AMD"), ("ADBE", "Adobe"),
+    ("CSCO", "Cisco"), ("TMUS", "T-Mobile US"), ("INTU", "Intuit"),
+    ("QCOM", "Qualcomm"), ("AMAT", "Applied Materials"), ("TXN", "Texas Instruments"),
+    ("BKNG", "Booking Holdings"), ("ISRG", "Intuitive Surgical"),
+]
+
 
 def intraday(ticker: str, period: str = "2d") -> pd.DataFrame:
+    """Return normalized 5-minute history in New York time.
+
+    yfinance failures are allowed to propagate to the caller so the scanner can
+    count/report them instead of silently making a failed data request look like
+    a valid no-trade signal.
+    """
     frame = yf.Ticker(ticker).history(
         period=period,
         interval="5m",
         prepost=True,
         auto_adjust=False,
+        timeout=15,
     )
     if frame.empty:
         return frame
@@ -44,45 +66,124 @@ def session_bars(ticker: str, day) -> pd.DataFrame:
     return frame.between_time("09:30", "16:00")
 
 
-def premarket_stats(ticker: str, day) -> dict | None:
+def _same_day_frame(ticker: str, day) -> pd.DataFrame:
     frame = intraday(ticker)
     if frame.empty:
+        return frame
+    return frame.loc[frame.index.date == day]
+
+
+def premarket_stats(ticker: str, day) -> dict | None:
+    frame = _same_day_frame(ticker, day)
+    if frame.empty:
         return None
-    day_frame = frame.loc[frame.index.date == day]
-    if day_frame.empty:
-        return None
-    pre = day_frame.between_time("04:00", "09:29")
+    pre = frame.between_time("04:00", "09:29")
     if pre.empty:
         return None
 
     volume = float(pre["volume"].fillna(0).sum())
-    if volume <= 0:
+    closes = pre["close"].dropna()
+    opens = pre["open"].dropna()
+    if volume <= 0 or closes.empty or opens.empty:
         return None
-    first = float(pre["open"].dropna().iloc[0])
-    last = float(pre["close"].dropna().iloc[-1])
+    first = float(opens.iloc[0])
+    last = float(closes.iloc[-1])
     return {
         "premarket_volume": int(volume),
         "premarket_price": round(last, 4),
         "premarket_change_pct": round(((last / first) - 1) * 100, 3) if first else 0.0,
+        "selection_volume": int(volume),
+        "selection_source": "premarket",
     }
 
 
-def scan_premarket(day, leaders_per_universe: int = 5) -> list[dict]:
-    groups = [
-        ("microcap", get_microcap_universe(candidate_count=50)),
-        ("titan", get_titan_universe(top_n=20)),
-    ]
+def regular_session_activity(ticker: str, day) -> dict | None:
+    """Fallback activity signal when Yahoo does not expose premarket volume.
+
+    This does not fabricate premarket values: premarket fields are explicitly null/0
+    and ``selection_source`` tells downstream consumers what happened.
+    """
+    frame = _same_day_frame(ticker, day)
+    if frame.empty:
+        return None
+    regular = frame.between_time("09:30", "16:00")
+    if regular.empty:
+        return None
+    volume = float(regular["volume"].fillna(0).sum())
+    closes = regular["close"].dropna()
+    if volume <= 0 or closes.empty:
+        return None
+    return {
+        "premarket_volume": 0,
+        "premarket_price": None,
+        "premarket_change_pct": None,
+        "selection_volume": int(volume),
+        "selection_source": "regular_session_fallback",
+    }
+
+
+def _static_titan_frame() -> pd.DataFrame:
+    return pd.DataFrame([
+        {"ticker": ticker, "name": name, "market_cap": None, "avg_volume": 0}
+        for ticker, name in STATIC_TITANS
+    ])
+
+
+def _load_universes() -> tuple[list[tuple[str, pd.DataFrame]], list[str]]:
+    groups: list[tuple[str, pd.DataFrame]] = []
+    errors: list[str] = []
+
+    try:
+        microcaps = get_microcap_universe(candidate_count=50)
+        groups.append(("microcap", microcaps))
+    except Exception as exc:
+        errors.append(f"microcap_universe:{type(exc).__name__}:{exc}")
+
+    try:
+        titans = get_titan_universe(top_n=20)
+    except Exception as exc:
+        errors.append(f"titan_universe:{type(exc).__name__}:{exc}")
+        titans = _static_titan_frame()
+        errors.append("titan_universe:using_static_fallback")
+    groups.append(("titan", titans))
+    return groups, errors
+
+
+def scan_premarket_with_diagnostics(day, leaders_per_universe: int = 5) -> tuple[list[dict], dict]:
+    """Return candidate leaders plus an audit-friendly scan diagnostic payload."""
+    groups, universe_errors = _load_universes()
     leaders: list[dict] = []
+    diagnostics = {
+        "day": str(day),
+        "universe_errors": universe_errors,
+        "groups": {},
+        "total_leaders": 0,
+    }
 
     for universe, frame in groups:
         rows = []
+        attempted = usable = genuine_premarket = regular_fallback = data_errors = 0
         for item in frame.to_dict("records"):
             ticker = str(item.get("ticker", "")).upper().strip()
             if not ticker:
                 continue
-            stats = premarket_stats(ticker, day)
+            attempted += 1
+            try:
+                stats = premarket_stats(ticker, day)
+                if stats is None:
+                    stats = regular_session_activity(ticker, day)
+            except Exception as exc:
+                data_errors += 1
+                if len(universe_errors) < 20:
+                    universe_errors.append(f"{universe}:{ticker}:{type(exc).__name__}:{exc}")
+                continue
             if stats is None:
                 continue
+            usable += 1
+            if stats["selection_source"] == "premarket":
+                genuine_premarket += 1
+            else:
+                regular_fallback += 1
             rows.append({
                 "ticker": ticker,
                 "name": item.get("name", ticker),
@@ -91,10 +192,21 @@ def scan_premarket(day, leaders_per_universe: int = 5) -> list[dict]:
                 "avg_volume": item.get("avg_volume", item.get("volume", 0)),
                 **stats,
             })
-        rows.sort(key=lambda x: x["premarket_volume"], reverse=True)
-        leaders.extend(rows[:leaders_per_universe])
+        rows.sort(key=lambda x: x["selection_volume"], reverse=True)
+        picked = rows[:leaders_per_universe]
+        leaders.extend(picked)
+        diagnostics["groups"][universe] = {
+            "attempted": attempted,
+            "usable": usable,
+            "genuine_premarket": genuine_premarket,
+            "regular_session_fallback": regular_fallback,
+            "data_errors": data_errors,
+            "selected": len(picked),
+            "selected_tickers": [row["ticker"] for row in picked],
+        }
 
-    # Fundamental fields are context only; the intraday signals remain primary.
+    # Fundamental fields are context only; failures must not remove a valid
+    # technical/activity candidate.
     for item in leaders:
         try:
             info = yf.Ticker(item["ticker"]).info
@@ -110,6 +222,13 @@ def scan_premarket(day, leaders_per_universe: int = 5) -> list[dict]:
             )
             if info.get(key) is not None
         }
+
+    diagnostics["total_leaders"] = len(leaders)
+    return leaders, diagnostics
+
+
+def scan_premarket(day, leaders_per_universe: int = 5) -> list[dict]:
+    leaders, _ = scan_premarket_with_diagnostics(day, leaders_per_universe)
     return leaders
 
 
@@ -155,11 +274,7 @@ def technical_snapshot(ticker: str, day) -> dict | None:
     opening_high = float(first30["high"].max()) if not first30.empty else float(bars["high"].iloc[0])
     opening_low = float(first30["low"].min()) if not first30.empty else float(bars["low"].iloc[0])
     price = float(close.iloc[-1])
-    atr_value = (
-        float(atr14.dropna().iloc[-1])
-        if not atr14.dropna().empty
-        else float((bars["high"] - bars["low"]).mean())
-    )
+    atr_value = float(atr14.dropna().iloc[-1]) if not atr14.dropna().empty else float((bars["high"] - bars["low"]).mean())
     recent_volume = float(volume.tail(min(6, len(volume))).mean())
     base_volume = float(volume.mean()) or 1.0
 
@@ -184,7 +299,10 @@ def technical_snapshot(ticker: str, day) -> dict | None:
 
 
 def latest_price(ticker: str, day) -> float | None:
-    bars = session_bars(ticker, day)
+    try:
+        bars = session_bars(ticker, day)
+    except Exception:
+        return None
     if bars.empty:
         return None
     return float(bars["close"].iloc[-1])
