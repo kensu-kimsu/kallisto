@@ -91,20 +91,20 @@ The frozen `V1.0` risk replay provides a low-cost counterfactual control using t
 <!-- ADAPTIVE_DASHBOARD_START -->
 ## Kallisto adaptive learning dashboard
 
-> The live values and graphs below are refreshed automatically from Azure after market sessions. Before Day 1 they remain at their initial values.
+> Simulation only. Kallisto evaluates itself weekly and may make bounded strategy changes only after enough evidence is available.
 
 | Metric | Current value |
 |---|---:|
 | Strategy version | **V1.0** |
-| Completed sessions | 0 |
+| Completed sessions | 1 |
 | Completed trades | 0 |
-| Adaptive equity | **$1,000.00** |
-| Adaptive cumulative return | **0.00%** |
+| Kallisto adaptive equity | **$1,000.00** |
+| Kallisto cumulative return | **0.00%** |
 | Frozen V1.0 risk-replay equity | $1,000.00 |
 | Frozen V1.0 risk-replay return | 0.00% |
-| Adaptive vs frozen V1.0 risk replay | 0.00% |
-| S&P 500 return from experiment base | 0.00% |
-| Nasdaq-100 return from experiment base | 0.00% |
+| Kallisto vs frozen V1.0 risk replay | 0.00% |
+| S&P 500 return from experiment base | -0.14% |
+| Nasdaq-100 return from experiment base | -0.25% |
 | Rolling 5-session alpha vs stronger benchmark | 0.00 pp |
 | Rolling 5-session win rate | 0.00% |
 | Rolling 5-session profit factor | 0.00 |
@@ -112,17 +112,13 @@ The frozen `V1.0` risk replay provides a low-cost counterfactual control using t
 
 ### Beating-the-market and frozen-V1 graph
 
-Generated after the first completed session:
+![Kallisto vs frozen V1 risk replay, S&P 500 and Nasdaq-100](docs/results/scalping_equity_comparison.png)
 
-`docs/results/scalping_equity_comparison.png`
+### Kallisto self-improvement graphs
 
-### Self-improvement graphs
+![Kallisto rolling 5-session adaptive performance](docs/results/self_improvement_returns.png)
 
-Generated as evidence accumulates:
-
-`docs/results/self_improvement_returns.png`
-
-`docs/results/self_improvement_alpha.png`
+![Kallisto rolling alpha vs the stronger market benchmark](docs/results/self_improvement_alpha.png)
 
 ### Learning policy
 
@@ -131,8 +127,9 @@ Generated as evidence accumulates:
 - Parameter changes: no more often than every 10 completed sessions.
 - Evidence gate: at least 20 completed trades plus evaluator confidence of 0.60 or higher.
 - Hard risk limits remain bounded in deterministic code; the evaluator cannot remove them.
-- Every accepted change creates a new version and is recorded in `strategy_versions.csv`.
-- The frozen V1.0 replay isolates risk-sizing changes on the same realized trade sequence; it does not isolate prompt-driven trade-selection changes.
+- Every accepted change creates a new version (V1.1, V1.2, ...) and is recorded in `strategy_versions.csv`.
+- The frozen V1.0 replay isolates risk-sizing changes on the same realized trade sequence; it is not a second independent LLM and therefore does not isolate prompt-driven trade-selection changes.
+
 <!-- ADAPTIVE_DASHBOARD_END -->
 
 ## Azure Functions runtime
