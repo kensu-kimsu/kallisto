@@ -1,4 +1,4 @@
-"""Bounded self-evaluation for the simulation-only scalping experiment.
+"""Bounded self-evaluation for the simulation-only Kallisto experiment.
 
 The adaptive track may tune a small allow-list of parameters. Hard portfolio
 safety limits stay bounded by deterministic ranges and every change is versioned.
@@ -26,6 +26,7 @@ EVALUATION_LOG = RUN_ROOT / "weekly_evaluations.jsonl"
 IMPROVEMENT_LOG = RUN_ROOT / "improvement_metrics.csv"
 VERSION_LOG = RUN_ROOT / "strategy_versions.csv"
 MODEL = "gpt-5.6-luna"
+CLEAN_START_DATE = os.environ.get("KALLISTO_START_DATE", "2026-10-13")
 
 DEFAULT_CONFIG = {
     "version": "V1.0",
@@ -40,12 +41,11 @@ DEFAULT_CONFIG = {
     "max_hold_minutes": 75,
     "microcap_min_target_pct": 0.009,
     "titan_min_target_pct": 0.0045,
-    "learning_notes": "Use the original Final V1 setup priorities without adaptive preference changes.",
+    "learning_notes": "Use the original Kallisto V1 setup priorities without adaptive preference changes.",
     "last_evaluation_session_count": 0,
     "last_change_session_count": 0,
 }
 
-# Deliberately narrow ranges. The evaluator cannot disable core risk controls.
 BOUNDS = {
     "min_confidence": (0.55, 0.75),
     "risk_per_trade_pct": (0.003, 0.006),
@@ -66,9 +66,7 @@ IMPROVEMENT_FIELDS = [
     "rolling_5_win_rate_pct", "rolling_5_profit_factor", "max_drawdown_pct",
     "adaptive_equity", "baseline_equity", "adaptive_vs_baseline_pct",
 ]
-VERSION_FIELDS = [
-    "effective_date", "version", "reason", "sessions", "trades", "config_json"
-]
+VERSION_FIELDS = ["effective_date", "version", "reason", "sessions", "trades", "config_json"]
 
 
 def ensure_learning_state() -> None:
@@ -82,7 +80,7 @@ def ensure_learning_state() -> None:
             with path.open("w", encoding="utf-8", newline="") as f:
                 csv.DictWriter(f, fieldnames=fields).writeheader()
     if VERSION_LOG.stat().st_size <= len(",".join(VERSION_FIELDS)) + 2:
-        _append_version(DEFAULT_CONFIG, "Initial frozen Final V1 adaptive configuration", 0, 0, "prelaunch")
+        _append_version(DEFAULT_CONFIG, "Initial frozen Kallisto V1 adaptive configuration", 0, 0, "prelaunch")
 
 
 def load_config() -> dict:
@@ -100,7 +98,6 @@ def save_config(config: dict) -> None:
 
 
 def baseline_config() -> dict:
-    """Permanent frozen V1 settings for the independent shadow baseline."""
     return dict(DEFAULT_CONFIG)
 
 
@@ -109,6 +106,14 @@ def _read_csv(path: Path) -> list[dict]:
         return []
     with path.open("r", encoding="utf-8", newline="") as f:
         return list(csv.DictReader(f))
+
+
+def _valid_daily_rows() -> list[dict]:
+    return [row for row in _read_csv(DAILY_LOG) if (row.get("date") or "") >= CLEAN_START_DATE]
+
+
+def _valid_trade_rows() -> list[dict]:
+    return [row for row in _read_csv(TRADE_LOG) if (row.get("session_date") or "") >= CLEAN_START_DATE]
 
 
 def _safe_float(value, default=0.0) -> float:
@@ -139,8 +144,8 @@ def _max_drawdown(equities: list[float]) -> float:
 
 
 def compute_metrics(baseline_daily_path: Path | None = None) -> dict:
-    daily = _read_csv(DAILY_LOG)
-    trades = _read_csv(TRADE_LOG)
+    daily = _valid_daily_rows()
+    trades = _valid_trade_rows()
     last5 = daily[-5:]
     dates = {r.get("date") for r in last5}
     last5_trades = [t for t in trades if t.get("session_date") in dates]
@@ -166,24 +171,18 @@ def compute_metrics(baseline_daily_path: Path | None = None) -> dict:
 
     baseline_equity = 1000.0
     if baseline_daily_path:
-        baseline_daily = _read_csv(baseline_daily_path)
+        baseline_daily = [r for r in _read_csv(baseline_daily_path) if (r.get("date") or "") >= CLEAN_START_DATE]
         if baseline_daily:
             baseline_equity = _safe_float(baseline_daily[-1].get("ending_equity"), 1000.0)
     adaptive_vs_baseline = ((adaptive_equity / baseline_equity) - 1) * 100 if baseline_equity else 0.0
 
     return {
-        "sessions": len(daily),
-        "trades": len(trades),
-        "rolling_5_return_pct": roll_return,
-        "rolling_5_sp500_pct": sp_ret,
-        "rolling_5_nasdaq100_pct": nd_ret,
-        "rolling_5_alpha_pct": alpha,
-        "rolling_5_win_rate_pct": win_rate,
+        "sessions": len(daily), "trades": len(trades), "rolling_5_return_pct": roll_return,
+        "rolling_5_sp500_pct": sp_ret, "rolling_5_nasdaq100_pct": nd_ret,
+        "rolling_5_alpha_pct": alpha, "rolling_5_win_rate_pct": win_rate,
         "rolling_5_profit_factor": _profit_factor(last5_trades),
-        "max_drawdown_pct": _max_drawdown(equities),
-        "adaptive_equity": adaptive_equity,
-        "baseline_equity": baseline_equity,
-        "adaptive_vs_baseline_pct": adaptive_vs_baseline,
+        "max_drawdown_pct": _max_drawdown(equities), "adaptive_equity": adaptive_equity,
+        "baseline_equity": baseline_equity, "adaptive_vs_baseline_pct": adaptive_vs_baseline,
     }
 
 
@@ -213,119 +212,78 @@ def _next_version(version: str) -> str:
 def _append_version(config: dict, reason: str, sessions: int, trades: int, day: str) -> None:
     with VERSION_LOG.open("a", encoding="utf-8", newline="") as f:
         csv.DictWriter(f, fieldnames=VERSION_FIELDS).writerow({
-            "effective_date": day,
-            "version": config.get("version", "V1.0"),
-            "reason": reason,
-            "sessions": sessions,
-            "trades": trades,
-            "config_json": json.dumps(config, sort_keys=True),
+            "effective_date": day, "version": config.get("version", "V1.0"), "reason": reason,
+            "sessions": sessions, "trades": trades, "config_json": json.dumps(config, sort_keys=True),
         })
 
 
-def _bounded_config(current: dict, proposal: dict) -> dict:
-    new = dict(current)
-    changes = proposal.get("changes", {}) if isinstance(proposal, dict) else {}
-    for key, bounds in BOUNDS.items():
-        if key not in changes:
-            continue
-        lo, hi = bounds
-        try:
-            value = float(changes[key])
-        except (TypeError, ValueError):
-            continue
-        value = min(max(value, lo), hi)
-        if key in {"max_open_positions", "max_hold_minutes"}:
-            value = int(round(value))
-        new[key] = value
-    notes = str(proposal.get("learning_notes", "")).strip()[:1200]
-    if notes:
-        new["learning_notes"] = notes
-    return new
+def _bounded_value(key: str, value):
+    low, high = BOUNDS[key]
+    if key in {"max_open_positions", "max_hold_minutes"}:
+        return int(max(low, min(high, int(round(float(value))))))
+    return max(low, min(high, float(value)))
 
 
-def _call_evaluator(metrics: dict, current: dict, recent_trades: list[dict], now_et: datetime) -> tuple[dict, dict]:
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError("OPENAI_API_KEY is not set.")
+def _evaluate_with_llm(metrics: dict, recent_daily: list[dict], recent_trades: list[dict], config: dict, now_et: datetime) -> dict:
     prompt = f"""
-You are the weekly research evaluator for a SIMULATION-ONLY intraday scalping experiment.
-Your job is not to maximize activity. Diagnose the measured evidence and propose only
-small, defensible parameter changes. Do not weaken safety limits outside supplied bounds.
-Do not invent market data. If evidence is weak, recommend no change.
-
-Current config:\n{json.dumps(current, indent=2)}
-Measured metrics:\n{json.dumps(metrics, indent=2)}
-Recent closed trades (max 40):\n{json.dumps(recent_trades[-40:], indent=2)}
-Allowed parameter bounds:\n{json.dumps(BOUNDS, indent=2)}
-
-Return JSON only:
-{{
-  "summary": "what worked/failed and why, based only on measured evidence",
-  "changes": {{"parameter_name": numeric_value}},
-  "learning_notes": "short setup/time-of-day/direction guidance for future prompts",
-  "confidence": 0.0
-}}
+You are the bounded strategy evaluator for Kallisto, a SIMULATION-ONLY intraday scalping research experiment.
+Evaluate evidence; do not promise profits. Avoid changes when evidence is weak.
+Current configuration: {json.dumps(config, sort_keys=True)}
+Measured metrics: {json.dumps(metrics, sort_keys=True)}
+Recent daily results: {json.dumps(recent_daily[-10:], default=str)}
+Recent completed trades: {json.dumps(recent_trades[-40:], default=str)}
+Allowed tunable keys and absolute bounds: {json.dumps(BOUNDS, sort_keys=True)}
+Return JSON only with: confidence (0..1), diagnosis (short string), learning_notes (<=500 chars), and proposed_changes (object containing only allowed keys). Use an empty proposed_changes object when evidence does not justify a change.
 """
-    client = OpenAI(api_key=api_key)
+    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
     response = client.responses.create(model=MODEL, input=prompt, reasoning={"effort": "low"})
     usage = response.usage
-    inp = int(getattr(usage, "input_tokens", 0) or 0) if usage else 0
-    out = int(getattr(usage, "output_tokens", 0) or 0) if usage else 0
+    input_tokens = int(getattr(usage, "input_tokens", 0) or 0) if usage else 0
+    output_tokens = int(getattr(usage, "output_tokens", 0) or 0) if usage else 0
     details = getattr(usage, "input_tokens_details", None) if usage else None
     cached = int(getattr(details, "cached_tokens", 0) or 0) if details else 0
-    cost = record_api_call(now_et, MODEL, inp, cached, out)
-    tokens = {"input_tokens": inp, "cached_input_tokens": cached, "output_tokens": out, "estimated_cost_usd": float(cost["total_cost_usd"])}
-    try:
-        return json.loads((response.output_text or "").strip()), tokens
-    except json.JSONDecodeError:
-        return {"summary": "Evaluator returned invalid JSON; no changes applied.", "changes": {}, "learning_notes": "", "confidence": 0.0}, tokens
+    record_api_call(now_et, MODEL, input_tokens, cached, output_tokens)
+    return json.loads((response.output_text or "{}").strip())
 
 
 def maybe_weekly_evaluate(now_et: datetime, baseline_daily_path: Path | None = None) -> dict | None:
-    """Evaluate every 5 completed sessions; allow config changes only every 10 sessions.
-
-    The first weekly review is observation-only unless enough evidence exists. A change
-    requires at least 20 completed trades and 10 sessions since the last change.
-    """
     ensure_learning_state()
-    current = load_config()
-    metrics = compute_metrics(baseline_daily_path)
-    sessions = int(metrics["sessions"])
-    trades_count = int(metrics["trades"])
-    if sessions < 5 or sessions - int(current.get("last_evaluation_session_count", 0)) < 5:
+    daily = _valid_daily_rows()
+    trades = _valid_trade_rows()
+    config = load_config()
+    session_count = len(daily)
+    trade_count = len(trades)
+    last_eval = int(config.get("last_evaluation_session_count", 0))
+    if session_count < 5 or session_count - last_eval < 5:
         return None
 
-    trades = _read_csv(TRADE_LOG)
-    proposal, tokens = _call_evaluator(metrics, current, trades, now_et)
-    can_change = trades_count >= 20 and sessions - int(current.get("last_change_session_count", 0)) >= 10
-    confidence = _safe_float(proposal.get("confidence"), 0.0)
+    metrics = compute_metrics(baseline_daily_path)
+    result = _evaluate_with_llm(metrics, daily, trades, config, now_et)
+    confidence = _safe_float(result.get("confidence"), 0.0)
+    proposals = result.get("proposed_changes") if isinstance(result.get("proposed_changes"), dict) else {}
+    can_change = trade_count >= 20 and session_count - int(config.get("last_change_session_count", 0)) >= 10 and confidence >= 0.60
+    old_version = config.get("version", "V1.0")
     changed = False
-    old_version = current["version"]
-    if can_change and confidence >= 0.60:
-        candidate = _bounded_config(current, proposal)
-        materially_changed = any(candidate.get(k) != current.get(k) for k in BOUNDS) or candidate.get("learning_notes") != current.get("learning_notes")
-        if materially_changed:
-            candidate["version"] = _next_version(old_version)
-            candidate["last_change_session_count"] = sessions
-            current = candidate
-            changed = True
+    if can_change and proposals:
+        for key, value in proposals.items():
+            if key in BOUNDS:
+                config[key] = _bounded_value(key, value)
+                changed = True
+        notes = str(result.get("learning_notes", "")).strip()[:500]
+        if notes:
+            config["learning_notes"] = notes
+        if changed:
+            config["version"] = _next_version(old_version)
+            config["last_change_session_count"] = session_count
+            _append_version(config, str(result.get("diagnosis", "bounded evaluator update"))[:300], session_count, trade_count, str(now_et.date()))
 
-    current["last_evaluation_session_count"] = sessions
-    save_config(current)
-    record = {
-        "timestamp_et": now_et.isoformat(),
-        "sessions": sessions,
-        "trades": trades_count,
-        "metrics": metrics,
-        "proposal": proposal,
-        "change_eligible": can_change,
-        "changed": changed,
-        "old_version": old_version,
-        "new_version": current["version"],
-        "tokens": tokens,
+    config["last_evaluation_session_count"] = session_count
+    save_config(config)
+    log_row = {
+        "timestamp_et": now_et.isoformat(), "old_version": old_version, "new_version": config.get("version", old_version),
+        "changed": changed, "confidence": confidence, "diagnosis": result.get("diagnosis"),
+        "proposed_changes": proposals, "applied_config": config, "metrics": metrics,
     }
     with EVALUATION_LOG.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(record, sort_keys=True, default=str) + "\n")
-    if changed:
-        _append_version(current, str(proposal.get("summary", "Adaptive evidence-based update"))[:600], sessions, trades_count, str(now_et.date()))
-    return record
+        f.write(json.dumps(log_row, sort_keys=True, default=str) + "\n")
+    return log_row
