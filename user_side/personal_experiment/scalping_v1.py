@@ -16,7 +16,7 @@ import pandas_market_calendars as mcal
 from user_side.personal_experiment.adaptive_learning import ensure_learning_state, load_config, maybe_weekly_evaluate, record_improvement_snapshot
 from user_side.personal_experiment.baseline_replay import BASELINE_REPLAY_LOG, refresh_baseline_replay
 from user_side.personal_experiment.scalping_engine import DAILY_LOSS_LIMIT_PCT, close_simulated_trade, evaluate_bar, mark_to_market, open_simulated_trade
-from user_side.personal_experiment.scalping_market_data import latest_price, scan_premarket, session_bars, technical_snapshot
+from user_side.personal_experiment.scalping_market_data import latest_price, scan_premarket_with_diagnostics, session_bars, technical_snapshot
 from user_side.personal_experiment.scalping_reporting import create_daily_journal, refresh_charts
 from user_side.personal_experiment.scalping_state import DAILY_FIELDS, DAILY_LOG, TRADE_LOG, append_decision, append_row, ensure_state, load_state, save_state
 from user_side.personal_experiment.scalping_strategy import MODEL, build_prompt, call_model, validate_proposals
@@ -45,6 +45,7 @@ def start_session(state: dict, now_et: datetime) -> None:
     state["last_cycle_et"] = None
     state["last_decision_et"] = None
     state["premarket_candidates"] = []
+    state["premarket_scan_diagnostics"] = {}
     state["paused"] = False
 
 
@@ -74,7 +75,11 @@ def monitor_positions(state: dict, now_et: datetime, config: dict) -> list[dict]
         pos = state["positions"].get(ticker)
         if pos is None:
             continue
-        bars = session_bars(ticker, now_et.date())
+        try:
+            bars = session_bars(ticker, now_et.date())
+        except Exception as exc:
+            print(f"Position data error for {ticker}: {type(exc).__name__}: {exc}")
+            continue
         if bars.empty:
             continue
         opened = datetime.fromisoformat(pos["opened_at"])
@@ -100,17 +105,34 @@ def force_flat(state: dict, now_et: datetime) -> list[dict]:
     return closed
 
 
-def build_candidates(state: dict, now_et: datetime) -> list[dict]:
+def build_candidates(state: dict, now_et: datetime) -> tuple[list[dict], dict]:
+    diagnostics = state.get("premarket_scan_diagnostics") or {}
     if not state.get("premarket_candidates"):
-        state["premarket_candidates"] = scan_premarket(now_et.date(), leaders_per_universe=PREMARKET_LEADERS_PER_UNIVERSE)
+        leaders, diagnostics = scan_premarket_with_diagnostics(
+            now_et.date(), leaders_per_universe=PREMARKET_LEADERS_PER_UNIVERSE
+        )
+        state["premarket_candidates"] = leaders
+        state["premarket_scan_diagnostics"] = diagnostics
+        print(f"Candidate scan diagnostics: {diagnostics}")
+
     candidates = []
-    for item in state["premarket_candidates"]:
-        tech = technical_snapshot(item["ticker"], now_et.date())
+    technical_errors = []
+    for item in state.get("premarket_candidates", []):
+        try:
+            tech = technical_snapshot(item["ticker"], now_et.date())
+        except Exception as exc:
+            technical_errors.append(f"{item['ticker']}:{type(exc).__name__}:{exc}")
+            continue
         if tech is not None:
             row = dict(item)
             row["technical"] = tech
             candidates.append(row)
-    return candidates
+
+    diagnostics = dict(diagnostics)
+    diagnostics["technical_candidates"] = len(candidates)
+    diagnostics["technical_errors"] = technical_errors[:20]
+    state["premarket_scan_diagnostics"] = diagnostics
+    return candidates, diagnostics
 
 
 def decision_due(state: dict, now_et: datetime) -> bool:
@@ -121,6 +143,19 @@ def decision_due(state: dict, now_et: datetime) -> bool:
 def read_today_trades(day) -> list[dict]:
     with TRADE_LOG.open("r", encoding="utf-8", newline="") as f:
         return [row for row in csv.DictReader(f) if row.get("session_date") == str(day)]
+
+
+def log_cycle_event(now_et: datetime, status: str, *, diagnostics: dict | None = None, extra: dict | None = None) -> None:
+    payload = {
+        "timestamp_et": now_et.isoformat(),
+        "model": MODEL,
+        "status": status,
+        "llm_called": False,
+        "market_data_diagnostics": diagnostics or {},
+    }
+    if extra:
+        payload.update(extra)
+    append_decision(payload)
 
 
 def finish_day(state: dict, now_et: datetime) -> None:
@@ -208,15 +243,51 @@ def main() -> None:
         print(f"Monitoring only: next Kallisto LLM decision is on a {DECISION_INTERVAL_MINUTES}-minute cadence.")
         return
 
-    candidates = build_candidates(state, now_et)
+    try:
+        candidates, diagnostics = build_candidates(state, now_et)
+    except Exception as exc:
+        diagnostics = {"fatal_scan_error": f"{type(exc).__name__}:{exc}"}
+        log_cycle_event(now_et, "MARKET_DATA_ERROR", diagnostics=diagnostics, extra={"strategy_version": config["version"]})
+        state["last_decision_et"] = now_et.isoformat()
+        state["last_cycle_et"] = now_et.isoformat()
+        save_state(state)
+        print(f"Market-data scan failed: {diagnostics['fatal_scan_error']}")
+        return
+
     if not candidates:
-        state["last_decision_et"] = now_et.isoformat(); state["last_cycle_et"] = now_et.isoformat(); save_state(state)
-        print("No eligible premarket-volume candidates with usable intraday data.")
+        log_cycle_event(
+            now_et,
+            "NO_CANDIDATES",
+            diagnostics=diagnostics,
+            extra={"strategy_version": config["version"], "candidate_count": 0},
+        )
+        state["last_decision_et"] = now_et.isoformat()
+        state["last_cycle_et"] = now_et.isoformat()
+        save_state(state)
+        print(f"No usable candidates. Diagnostics: {diagnostics}")
         return
 
     candidate_map = {candidate["ticker"]: candidate for candidate in candidates}
     prompt = build_prompt(state, candidates, now_et, config=config, track_name="Kallisto Adaptive")
-    response, tokens = call_model(prompt, now_et)
+    try:
+        response, tokens = call_model(prompt, now_et)
+    except Exception as exc:
+        log_cycle_event(
+            now_et,
+            "LLM_ERROR",
+            diagnostics=diagnostics,
+            extra={
+                "strategy_version": config["version"],
+                "candidate_count": len(candidates),
+                "error": f"{type(exc).__name__}:{exc}",
+            },
+        )
+        state["last_decision_et"] = now_et.isoformat()
+        state["last_cycle_et"] = now_et.isoformat()
+        save_state(state)
+        print(f"LLM decision failed: {type(exc).__name__}: {exc}")
+        return
+
     proposals = validate_proposals(response, set(candidate_map), config=config, candidate_map=candidate_map)
     opened = []
     for proposal in proposals:
@@ -226,8 +297,10 @@ def main() -> None:
             opened.append(position)
 
     append_decision({
-        "timestamp_et": now_et.isoformat(), "model": MODEL, "strategy_version": config["version"], "tokens": tokens,
-        "model_output": response, "accepted_proposals": proposals, "opened_positions": opened, "closed_positions": closed,
+        "timestamp_et": now_et.isoformat(), "model": MODEL, "status": "LLM_DECISION", "llm_called": True,
+        "strategy_version": config["version"], "candidate_count": len(candidates), "market_data_diagnostics": diagnostics,
+        "tokens": tokens, "model_output": response, "accepted_proposals": proposals,
+        "opened_positions": opened, "closed_positions": closed,
     })
     state["last_decision_et"] = now_et.isoformat(); state["last_cycle_et"] = now_et.isoformat(); save_state(state)
     print(f"Kallisto | candidates: {len(candidates)} | proposals: {len(proposals)} | opened: {len(opened)} | closed: {len(closed)} | version: {config['version']} | API cost: ${tokens['estimated_cost_usd']:.6f}")
