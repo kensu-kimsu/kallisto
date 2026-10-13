@@ -8,6 +8,7 @@ fills, a frozen V1 risk replay, and bounded self-evaluation.
 from __future__ import annotations
 
 import csv
+import json
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
@@ -18,12 +19,12 @@ from user_side.personal_experiment.baseline_replay import BASELINE_REPLAY_LOG, r
 from user_side.personal_experiment.scalping_engine import DAILY_LOSS_LIMIT_PCT, close_simulated_trade, evaluate_bar, mark_to_market, open_simulated_trade
 from user_side.personal_experiment.scalping_market_data import latest_price, scan_premarket_with_diagnostics, session_bars, technical_snapshot
 from user_side.personal_experiment.scalping_reporting import create_daily_journal, refresh_charts
-from user_side.personal_experiment.scalping_state import DAILY_FIELDS, DAILY_LOG, TRADE_LOG, append_decision, append_row, ensure_state, load_state, save_state
+from user_side.personal_experiment.scalping_state import DAILY_FIELDS, DAILY_LOG, DECISION_LOG, TRADE_LOG, append_decision, append_row, ensure_state, load_state, save_state
 from user_side.personal_experiment.scalping_strategy import MODEL, build_prompt, call_model, validate_proposals
 
 NY = ZoneInfo("America/New_York")
 STARTING_CASH = 1000.0
-FIRST_SESSION = "2026-10-08"
+FIRST_SESSION = "2026-10-13"
 PREMARKET_LEADERS_PER_UNIVERSE = 8
 ENTRY_START = time(9, 40)
 NEW_ENTRY_CUTOFF = time(15, 30)
@@ -36,11 +37,23 @@ def is_nyse_session(day) -> bool:
 
 
 def start_session(state: dict, now_et: datetime) -> None:
-    if state.get("session_date") == str(now_et.date()):
+    day = str(now_et.date())
+    if state.get("session_date") == day:
         return
     if state.get("positions"):
         raise RuntimeError("Previous session still has open positions; refusing overnight carry.")
-    state["session_date"] = str(now_et.date())
+
+    # Oct 12 was an infrastructure/data-pipeline validation day with no LLM
+    # decisions. The first post-fix session starts from a clean $1,000 benchmark
+    # base without deleting the old audit files.
+    previous = state.get("session_date")
+    if day == FIRST_SESSION and (not previous or str(previous) < FIRST_SESSION):
+        state["cash"] = STARTING_CASH
+        state["high_water_mark"] = STARTING_CASH
+        state["benchmark_base"] = {}
+        state["clean_start_date"] = FIRST_SESSION
+
+    state["session_date"] = day
     state["session_start_equity"] = float(state["cash"])
     state["last_cycle_et"] = None
     state["last_decision_et"] = None
@@ -145,13 +158,28 @@ def read_today_trades(day) -> list[dict]:
         return [row for row in csv.DictReader(f) if row.get("session_date") == str(day)]
 
 
+def has_llm_decision(day) -> bool:
+    if not DECISION_LOG.exists():
+        return False
+    prefix = str(day)
+    with DECISION_LOG.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if str(row.get("timestamp_et", "")).startswith(prefix) and row.get("status") == "LLM_DECISION" and row.get("llm_called") is True:
+                return True
+    return False
+
+
 def log_cycle_event(now_et: datetime, status: str, *, diagnostics: dict | None = None, extra: dict | None = None) -> None:
     payload = {
-        "timestamp_et": now_et.isoformat(),
-        "model": MODEL,
-        "status": status,
-        "llm_called": False,
-        "market_data_diagnostics": diagnostics or {},
+        "timestamp_et": now_et.isoformat(), "model": MODEL, "status": status,
+        "llm_called": False, "market_data_diagnostics": diagnostics or {},
     }
     if extra:
         payload.update(extra)
@@ -161,6 +189,14 @@ def log_cycle_event(now_et: datetime, status: str, *, diagnostics: dict | None =
 def finish_day(state: dict, now_et: datetime) -> None:
     if state.get("positions"):
         raise RuntimeError("Cannot write daily summary while simulated positions remain open.")
+
+    # A zero-trade day is valid only when the LLM actually evaluated at least one
+    # candidate set. Infrastructure/data failures are logged but excluded from the
+    # clean performance and self-learning series.
+    if not has_llm_decision(now_et.date()):
+        print("Session excluded from clean Day 1 series: no successful LLM decision cycle was recorded.")
+        return
+
     ending = float(state["cash"])
     start = float(state["session_start_equity"])
     daily_return = ((ending / start) - 1) * 100 if start else 0.0
@@ -206,7 +242,7 @@ def main() -> None:
     print(f"New York time: {now_et.isoformat()} | Kallisto strategy version: {config['version']}")
 
     if str(now_et.date()) < FIRST_SESSION:
-        print(f"Kallisto experiment begins on NYSE session {FIRST_SESSION}.")
+        print(f"Kallisto clean experiment begins on NYSE session {FIRST_SESSION}.")
         return
     if not is_nyse_session(now_et.date()):
         print("NYSE is closed today.")
@@ -248,22 +284,13 @@ def main() -> None:
     except Exception as exc:
         diagnostics = {"fatal_scan_error": f"{type(exc).__name__}:{exc}"}
         log_cycle_event(now_et, "MARKET_DATA_ERROR", diagnostics=diagnostics, extra={"strategy_version": config["version"]})
-        state["last_decision_et"] = now_et.isoformat()
-        state["last_cycle_et"] = now_et.isoformat()
-        save_state(state)
+        state["last_decision_et"] = now_et.isoformat(); state["last_cycle_et"] = now_et.isoformat(); save_state(state)
         print(f"Market-data scan failed: {diagnostics['fatal_scan_error']}")
         return
 
     if not candidates:
-        log_cycle_event(
-            now_et,
-            "NO_CANDIDATES",
-            diagnostics=diagnostics,
-            extra={"strategy_version": config["version"], "candidate_count": 0},
-        )
-        state["last_decision_et"] = now_et.isoformat()
-        state["last_cycle_et"] = now_et.isoformat()
-        save_state(state)
+        log_cycle_event(now_et, "NO_CANDIDATES", diagnostics=diagnostics, extra={"strategy_version": config["version"], "candidate_count": 0})
+        state["last_decision_et"] = now_et.isoformat(); state["last_cycle_et"] = now_et.isoformat(); save_state(state)
         print(f"No usable candidates. Diagnostics: {diagnostics}")
         return
 
@@ -272,19 +299,11 @@ def main() -> None:
     try:
         response, tokens = call_model(prompt, now_et)
     except Exception as exc:
-        log_cycle_event(
-            now_et,
-            "LLM_ERROR",
-            diagnostics=diagnostics,
-            extra={
-                "strategy_version": config["version"],
-                "candidate_count": len(candidates),
-                "error": f"{type(exc).__name__}:{exc}",
-            },
-        )
-        state["last_decision_et"] = now_et.isoformat()
-        state["last_cycle_et"] = now_et.isoformat()
-        save_state(state)
+        log_cycle_event(now_et, "LLM_ERROR", diagnostics=diagnostics, extra={
+            "strategy_version": config["version"], "candidate_count": len(candidates),
+            "error": f"{type(exc).__name__}:{exc}",
+        })
+        state["last_decision_et"] = now_et.isoformat(); state["last_cycle_et"] = now_et.isoformat(); save_state(state)
         print(f"LLM decision failed: {type(exc).__name__}: {exc}")
         return
 
