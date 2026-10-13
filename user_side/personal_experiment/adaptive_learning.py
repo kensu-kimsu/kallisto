@@ -224,6 +224,30 @@ def _bounded_value(key: str, value):
     return max(low, min(high, float(value)))
 
 
+def _bounded_config(current: dict, proposal: dict) -> dict:
+    """Apply only allow-listed adaptive changes and clamp each to its hard bound.
+
+    This helper is intentionally deterministic and side-effect free so CI can prove
+    that evaluator output cannot add unknown controls or escape the configured limits.
+    """
+    bounded = dict(current)
+    changes = proposal.get("changes") if isinstance(proposal, dict) else None
+    if not isinstance(changes, dict):
+        changes = proposal.get("proposed_changes") if isinstance(proposal, dict) else None
+    if isinstance(changes, dict):
+        for key, value in changes.items():
+            if key not in BOUNDS:
+                continue
+            try:
+                bounded[key] = _bounded_value(key, value)
+            except (TypeError, ValueError, OverflowError):
+                continue
+    notes = proposal.get("learning_notes") if isinstance(proposal, dict) else None
+    if notes is not None:
+        bounded["learning_notes"] = str(notes).strip()[:500]
+    return bounded
+
+
 def _evaluate_with_llm(metrics: dict, recent_daily: list[dict], recent_trades: list[dict], config: dict, now_et: datetime) -> dict:
     prompt = f"""
 You are the bounded strategy evaluator for Kallisto, a SIMULATION-ONLY intraday scalping research experiment.
@@ -265,13 +289,12 @@ def maybe_weekly_evaluate(now_et: datetime, baseline_daily_path: Path | None = N
     old_version = config.get("version", "V1.0")
     changed = False
     if can_change and proposals:
-        for key, value in proposals.items():
-            if key in BOUNDS:
-                config[key] = _bounded_value(key, value)
+        candidate = _bounded_config(config, {"proposed_changes": proposals, "learning_notes": result.get("learning_notes")})
+        for key in BOUNDS:
+            if candidate.get(key) != config.get(key):
                 changed = True
-        notes = str(result.get("learning_notes", "")).strip()[:500]
-        if notes:
-            config["learning_notes"] = notes
+                break
+        config = candidate
         if changed:
             config["version"] = _next_version(old_version)
             config["last_change_session_count"] = session_count
