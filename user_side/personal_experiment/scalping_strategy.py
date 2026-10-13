@@ -1,4 +1,4 @@
-"""LLM decision prompt and validation for the simulation-only scalping study."""
+"""LLM decision prompt and validation for the simulation-only Kallisto study."""
 
 from __future__ import annotations
 
@@ -16,15 +16,17 @@ MIN_TARGET_PCT = 0.004
 MIN_CONFIDENCE = 0.58
 
 
-def build_prompt(state: dict, candidates: list[dict], now_et: datetime, config: dict | None = None, track_name: str = "Adaptive LLM") -> str:
+def build_prompt(state: dict, candidates: list[dict], now_et: datetime, config: dict | None = None, track_name: str = "Kallisto Adaptive") -> str:
     config = config or {}
     min_confidence = float(config.get("min_confidence", MIN_CONFIDENCE))
     titan_min = float(config.get("titan_min_target_pct", MIN_TARGET_PCT))
     microcap_min = float(config.get("microcap_min_target_pct", 0.009))
-    learning_notes = str(config.get("learning_notes", "Original Final V1 rules only."))
+    learning_notes = str(config.get("learning_notes", "Original Kallisto V1 rules only."))
     version = str(config.get("version", "V1.0"))
     payload = [{
         "ticker": c["ticker"], "name": c.get("name"), "universe": c["universe"],
+        "selection_source": c.get("selection_source", "premarket"),
+        "selection_volume": c.get("selection_volume"),
         "premarket_volume": c.get("premarket_volume"), "premarket_change_pct": c.get("premarket_change_pct"),
         "technical": c.get("technical"), "fundamental": c.get("fundamental", {}),
     } for c in candidates]
@@ -57,6 +59,12 @@ SETUPS TO LOOK FOR
 
 CURRENT EVIDENCE-BASED LEARNING NOTES
 {learning_notes}
+
+DATA-SOURCE DISCIPLINE
+- `selection_source=premarket` means Yahoo supplied genuine 04:00-09:29 ET extended-hours activity.
+- `selection_source=regular_session_fallback` means extended-hours volume was unavailable and the ticker was selected using observed same-day regular-session activity instead.
+- Never describe fallback candidates as premarket leaders or invent missing premarket statistics.
+- When fallback data is used, base the decision primarily on the supplied regular-session technical evidence.
 
 DISCIPLINE
 - Do not trade merely because a ticker appears in the candidate list.
