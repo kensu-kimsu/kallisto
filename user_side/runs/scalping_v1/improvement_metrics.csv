@@ -1,2 +1,3 @@
 date,version,sessions,trades,rolling_5_return_pct,rolling_5_sp500_pct,rolling_5_nasdaq100_pct,rolling_5_alpha_pct,rolling_5_win_rate_pct,rolling_5_profit_factor,max_drawdown_pct,adaptive_equity,baseline_equity,adaptive_vs_baseline_pct
 2026-10-12,V1.0,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1000.0,1000.0,0.0
+2026-10-13,V1.0,1,11,-0.04612,0.0,0.0,-0.04612,45.454545,0.96046,0.0,999.5388,1000.1373,-0.059842

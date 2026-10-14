@@ -97,17 +97,17 @@ The frozen `V1.0` risk replay provides a low-cost counterfactual control using t
 |---|---:|
 | Strategy version | **V1.0** |
 | Completed sessions | 1 |
-| Completed trades | 0 |
-| Kallisto adaptive equity | **$1,000.00** |
-| Kallisto cumulative return | **0.00%** |
-| Frozen V1.0 risk-replay equity | $1,000.00 |
-| Frozen V1.0 risk-replay return | 0.00% |
-| Kallisto vs frozen V1.0 risk replay | 0.00% |
-| S&P 500 return from experiment base | -0.14% |
-| Nasdaq-100 return from experiment base | -0.25% |
-| Rolling 5-session alpha vs stronger benchmark | 0.00 pp |
-| Rolling 5-session win rate | 0.00% |
-| Rolling 5-session profit factor | 0.00 |
+| Completed trades | 11 |
+| Kallisto adaptive equity | **$999.54** |
+| Kallisto cumulative return | **-0.05%** |
+| Frozen V1.0 risk-replay equity | $1,000.14 |
+| Frozen V1.0 risk-replay return | 0.01% |
+| Kallisto vs frozen V1.0 risk replay | -0.06% |
+| S&P 500 return from experiment base | 0.09% |
+| Nasdaq-100 return from experiment base | 0.42% |
+| Rolling 5-session alpha vs stronger benchmark | -0.05 pp |
+| Rolling 5-session win rate | 45.45% |
+| Rolling 5-session profit factor | 0.96 |
 | Maximum drawdown | 0.00% |
 
 ### Beating-the-market and frozen-V1 graph
