@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import csv
 import os
+from datetime import datetime
 from pathlib import Path
 
 from azure.storage.blob import BlobServiceClient
@@ -19,6 +20,8 @@ RESULTS_ROOT = ROOT / "docs" / "results"
 CONTAINER = os.environ.get("SCALPING_STATE_CONTAINER", "scalping-v1-state")
 START = "<!-- ADAPTIVE_DASHBOARD_START -->"
 END = "<!-- ADAPTIVE_DASHBOARD_END -->"
+API_START = "<!-- API_COST_SUMMARY_START -->"
+API_END = "<!-- API_COST_SUMMARY_END -->"
 
 
 def _download() -> None:
@@ -27,21 +30,22 @@ def _download() -> None:
     RUN_ROOT.mkdir(parents=True, exist_ok=True)
     RESULTS_ROOT.mkdir(parents=True, exist_ok=True)
     state_names = [
-        "daily_performance.csv", "trade_log.csv", "api_costs.csv", "adaptive_config.json",
-        "weekly_evaluations.jsonl", "improvement_metrics.csv", "strategy_versions.csv", "baseline_replay.csv",
+        "portfolio_state.json", "decision_log.jsonl", "daily_performance.csv", "trade_log.csv",
+        "api_costs.csv", "adaptive_config.json", "weekly_evaluations.jsonl",
+        "improvement_metrics.csv", "strategy_versions.csv", "baseline_replay.csv",
     ]
     for name in state_names:
         blob = container.get_blob_client(f"state/{name}")
         try:
             RUN_ROOT.joinpath(name).write_bytes(blob.download_blob().readall())
-        except Exception:
-            pass
+        except Exception as exc:
+            print(f"WARNING: could not download state/{name}: {type(exc).__name__}: {exc}")
     for name in ["scalping_equity_comparison.png", "self_improvement_returns.png", "self_improvement_alpha.png"]:
         blob = container.get_blob_client(f"reports/results/{name}")
         try:
             RESULTS_ROOT.joinpath(name).write_bytes(blob.download_blob().readall())
-        except Exception:
-            pass
+        except Exception as exc:
+            print(f"WARNING: could not download reports/results/{name}: {type(exc).__name__}: {exc}")
 
 
 def _rows(path: Path) -> list[dict]:
@@ -129,17 +133,70 @@ def _dashboard() -> str:
     return "\n".join(lines)
 
 
+def _api_cost_summary() -> str:
+    rows = _rows(RUN_ROOT / "api_costs.csv")
+    calls = len(rows)
+    input_tokens = sum(int(_f(r.get("input_tokens"), 0)) for r in rows)
+    output_tokens = sum(int(_f(r.get("output_tokens"), 0)) for r in rows)
+    total_cost = sum(_f(r.get("total_cost_usd"), 0.0) for r in rows)
+
+    parsed = []
+    for row in rows:
+        raw = row.get("timestamp_et")
+        if not raw:
+            continue
+        try:
+            parsed.append(datetime.fromisoformat(raw))
+        except ValueError:
+            pass
+
+    active_days = len({d.date() for d in parsed})
+    active_weeks = len({(d.isocalendar().year, d.isocalendar().week) for d in parsed})
+    active_months = len({(d.year, d.month) for d in parsed})
+
+    def avg(value, count):
+        return value / count if count else 0.0
+
+    lines = [
+        API_START,
+        "| Cost period | API cost (USD) | API calls | Input tokens | Output tokens |",
+        "|---|---:|---:|---:|---:|",
+        f"| Average daily | ${avg(total_cost, active_days):.4f} | {avg(calls, active_days):.1f} | {avg(input_tokens, active_days):,.0f} | {avg(output_tokens, active_days):,.0f} |",
+        f"| Average weekly | ${avg(total_cost, active_weeks):.4f} | {avg(calls, active_weeks):.1f} | {avg(input_tokens, active_weeks):,.0f} | {avg(output_tokens, active_weeks):,.0f} |",
+        f"| Average monthly | ${avg(total_cost, active_months):.4f} | {avg(calls, active_months):.1f} | {avg(input_tokens, active_months):,.0f} | {avg(output_tokens, active_months):,.0f} |",
+        f"| **Total actual** | **${total_cost:.4f}** | **{calls}** | **{input_tokens:,}** | **{output_tokens:,}** |",
+        API_END,
+    ]
+    return "\n".join(lines)
+
+
+def _replace_block(text: str, start: str, end: str, block: str) -> str:
+    if start not in text or end not in text:
+        return text
+    a = text.index(start)
+    b = text.index(end) + len(end)
+    return text[:a] + block + text[b:]
+
+
 def _update_readme() -> None:
     text = README.read_text(encoding="utf-8")
-    block = _dashboard()
+    dashboard = _dashboard()
     if START in text and END in text:
-        a = text.index(START)
-        b = text.index(END) + len(END)
-        text = text[:a] + block + text[b:]
+        text = _replace_block(text, START, END, dashboard)
     else:
         anchor = "## OpenAI API cost tracking"
         pos = text.find(anchor)
-        text = text[:pos] + block + "\n\n" + text[pos:] if pos >= 0 else text + "\n\n" + block + "\n"
+        text = text[:pos] + dashboard + "\n\n" + text[pos:] if pos >= 0 else text + "\n\n" + dashboard + "\n"
+
+    text = _replace_block(text, API_START, API_END, _api_cost_summary())
+
+    daily = _rows(RUN_ROOT / "daily_performance.csv")
+    if daily:
+        text = text.replace(
+            "**Status:** Azure deployed; adaptive learning ready for first complete session",
+            "**Status:** Azure deployed; Day 1 complete; autonomous experiment running",
+        )
+
     README.write_text(text, encoding="utf-8")
 
 
