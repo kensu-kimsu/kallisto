@@ -96,19 +96,19 @@ The frozen `V1.0` risk replay provides a low-cost counterfactual control using t
 | Metric | Current value |
 |---|---:|
 | Strategy version | **V1.0** |
-| Completed sessions | 1 |
-| Completed trades | 11 |
-| Kallisto adaptive equity | **$999.54** |
-| Kallisto cumulative return | **-0.05%** |
-| Frozen V1.0 risk-replay equity | $1,000.14 |
-| Frozen V1.0 risk-replay return | 0.01% |
+| Completed sessions | 2 |
+| Completed trades | 21 |
+| Kallisto adaptive equity | **$991.11** |
+| Kallisto cumulative return | **-0.89%** |
+| Frozen V1.0 risk-replay equity | $991.71 |
+| Frozen V1.0 risk-replay return | -0.83% |
 | Kallisto vs frozen V1.0 risk replay | -0.06% |
-| S&P 500 return from experiment base | 0.09% |
-| Nasdaq-100 return from experiment base | 0.42% |
-| Rolling 5-session alpha vs stronger benchmark | -0.05 pp |
-| Rolling 5-session win rate | 45.45% |
-| Rolling 5-session profit factor | 0.96 |
-| Maximum drawdown | 0.00% |
+| S&P 500 return from experiment base | -1.04% |
+| Nasdaq-100 return from experiment base | -1.50% |
+| Rolling 5-session alpha vs stronger benchmark | 0.24 pp |
+| Rolling 5-session win rate | 42.86% |
+| Rolling 5-session profit factor | 0.71 |
+| Maximum drawdown | 0.84% |
 
 ### Beating-the-market and frozen-V1 graph
 
@@ -211,10 +211,10 @@ Every paid trading-decision call and weekly evaluator call records token usage a
 <!-- API_COST_SUMMARY_START -->
 | Cost period | API cost (USD) | API calls | Input tokens | Output tokens |
 |---|---:|---:|---:|---:|
-| Average daily | $0.0000 | 0.0 | 0 | 0 |
-| Average weekly | $0.0000 | 0.0 | 0 | 0 |
-| Average monthly | $0.0000 | 0.0 | 0 | 0 |
-| **Total actual** | **$0.0000** | **0** | **0** | **0** |
+| Average daily | $0.0320 | 19.0 | 131,962 | 4,651 |
+| Average weekly | $0.0639 | 38.0 | 263,925 | 9,302 |
+| Average monthly | $0.0639 | 38.0 | 263,925 | 9,302 |
+| **Total actual** | **$0.0639** | **38** | **263,925** | **9,302** |
 <!-- API_COST_SUMMARY_END -->
 
 OpenAI billing remains the source of truth for actual API charges.
@@ -264,7 +264,7 @@ Original copyright:
 ---
 
 **Product name:** Kallisto  
-**Status:** Azure deployed; adaptive learning ready for first complete session  
+**Status:** Azure deployed; Day 1 complete; autonomous experiment running  
 **Mode:** Simulation only  
 **Starting capital:** $1,000 USD  
 **Style:** Adaptive autonomous intraday scalping  
