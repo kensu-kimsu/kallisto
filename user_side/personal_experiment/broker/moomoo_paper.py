@@ -52,6 +52,7 @@ class MoomooPaperBroker:
             return self._api
         try:
             from moomoo import (  # type: ignore
+                ModifyOrderOp,
                 OpenSecTradeContext,
                 OrderType,
                 RET_OK,
@@ -65,6 +66,7 @@ class MoomooPaperBroker:
                 "Moomoo OpenAPI Python SDK is not installed. Install it only on the paper-trading host."
             ) from exc
         self._api = {
+            "ModifyOrderOp": ModifyOrderOp,
             "OpenSecTradeContext": OpenSecTradeContext,
             "OrderType": OrderType,
             "RET_OK": RET_OK,
@@ -136,6 +138,53 @@ class MoomooPaperBroker:
             open_orders=open_orders,
         )
 
+    def get_order_state(self, order_id: str) -> dict:
+        api = self._load_api()
+        ctx = self._require_ctx()
+        ret, data = ctx.order_list_query(
+            order_id=str(order_id),
+            trd_env=api["TrdEnv"].SIMULATE,
+            acc_id=self.acc_id,
+            refresh_cache=True,
+        )
+        if ret != api["RET_OK"] or data.empty:
+            return {"found": False, "order_id": str(order_id), "error": str(data)}
+        row = data.iloc[0]
+        requested = float(row.get("qty", 0.0) or 0.0)
+        dealt = float(row.get("dealt_qty", 0.0) or 0.0)
+        return {
+            "found": True,
+            "order_id": str(row.get("order_id", order_id)),
+            "status": str(row.get("order_status", "")),
+            "requested_qty": requested,
+            "dealt_qty": dealt,
+            "remaining_qty": max(0.0, requested - dealt),
+            "dealt_avg_price": float(row.get("dealt_avg_price", 0.0) or 0.0),
+            "partial_fill": dealt > 0 and dealt < requested,
+            "code": str(row.get("code", "")),
+        }
+
+    def cancel_order(self, order_id: str) -> dict:
+        api = self._load_api()
+        ctx = self._require_ctx()
+        ret, data = ctx.modify_order(
+            api["ModifyOrderOp"].CANCEL,
+            str(order_id),
+            0,
+            0,
+            trd_env=api["TrdEnv"].SIMULATE,
+            acc_id=self.acc_id,
+        )
+        return {
+            "cancel_requested": ret == api["RET_OK"],
+            "order_id": str(order_id),
+            "broker_response": str(data),
+        }
+
+    def cancel_open_orders(self) -> list[dict]:
+        snap = self.snapshot()
+        return [self.cancel_order(order_id) for order_id in snap.open_orders]
+
     def reconcile(self, expected_positions: dict[str, float]) -> SafetyDecision:
         snap = self.snapshot()
         normalized_expected = {
@@ -167,11 +216,7 @@ class MoomooPaperBroker:
         current_equity: float,
         broker_shortable: bool | None,
     ) -> dict:
-        if not is_new_position_allowed(intent.ticker):
-            manually_blocked = True
-        else:
-            manually_blocked = False
-
+        manually_blocked = not is_new_position_allowed(intent.ticker)
         decision = self.gate.preflight(
             environment="SIMULATE",
             intent=intent,
@@ -219,6 +264,34 @@ class MoomooPaperBroker:
             "requested_qty": int(intent.qty),
             "dealt_qty": float(first.get("dealt_qty", 0.0) or 0.0),
             "dealt_avg_price": float(first.get("dealt_avg_price", 0.0) or 0.0),
+        }
+
+    def flatten_position(self, code: str, qty: float, limit_price: float) -> dict:
+        """Submit a paper reduce order for an existing broker position.
+
+        This deliberately does not infer direction from strategy state; it uses
+        the sign of the broker-reported quantity as the source of truth.
+        """
+        api = self._load_api()
+        ctx = self._require_ctx()
+        side = api["TrdSide"].SELL if qty > 0 else api["TrdSide"].BUY
+        ret, data = ctx.place_order(
+            price=float(limit_price),
+            qty=int(abs(qty)),
+            code=str(code),
+            trd_side=side,
+            order_type=api["OrderType"].NORMAL,
+            trd_env=api["TrdEnv"].SIMULATE,
+            acc_id=self.acc_id,
+            remark="Kallisto:EOD_FLATTEN",
+        )
+        first = data.iloc[0].to_dict() if ret == api["RET_OK"] and hasattr(data, "iloc") and not data.empty else {}
+        return {
+            "submitted": ret == api["RET_OK"],
+            "code": str(code),
+            "qty": abs(float(qty)),
+            "order_id": str(first.get("order_id", "")),
+            "broker_response": str(data),
         }
 
     def verify_flat(self) -> SafetyDecision:
