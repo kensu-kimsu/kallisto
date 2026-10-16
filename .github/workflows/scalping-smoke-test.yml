@@ -13,8 +13,10 @@ on:
       - "user_side/personal_experiment/adaptive_learning.py"
       - "user_side/personal_experiment/baseline_replay.py"
       - "user_side/personal_experiment/azure_runtime.py"
+      - "user_side/personal_experiment/broker/**"
       - "tests/test_scalping_smoke.py"
       - "tests/test_adaptive_learning.py"
+      - "tests/test_moomoo_broker_safety.py"
       - ".github/workflows/scalping-smoke-test.yml"
 
 permissions:
@@ -37,7 +39,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -e .
-      - name: Compile Final V1 + Azure + adaptive modules
+      - name: Compile Final V1 + Azure + adaptive + broker modules
         run: |
           python -m py_compile function_app.py
           python -m py_compile user_side/personal_experiment/azure_runtime.py
@@ -51,7 +53,10 @@ jobs:
           python -m py_compile user_side/personal_experiment/scalping_reporting.py
           python -m py_compile user_side/personal_experiment/scalping_v1.py
           python -m py_compile user_side/personal_experiment/scalping_session_runner.py
+          python -m py_compile user_side/personal_experiment/broker/safety.py
+          python -m py_compile user_side/personal_experiment/broker/moomoo_paper.py
       - name: Run deterministic smoke tests
         run: |
           python -m unittest discover -s tests -p "test_scalping_smoke.py" -v
           python -m unittest discover -s tests -p "test_adaptive_learning.py" -v
+          python -m unittest discover -s tests -p "test_moomoo_broker_safety.py" -v
