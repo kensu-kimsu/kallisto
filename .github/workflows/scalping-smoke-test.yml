@@ -17,6 +17,7 @@ on:
       - "tests/test_scalping_smoke.py"
       - "tests/test_adaptive_learning.py"
       - "tests/test_moomoo_broker_safety.py"
+      - "tests/test_moomoo_rest_paper.py"
       - ".github/workflows/scalping-smoke-test.yml"
 
 permissions:
@@ -55,8 +56,12 @@ jobs:
           python -m py_compile user_side/personal_experiment/scalping_session_runner.py
           python -m py_compile user_side/personal_experiment/broker/safety.py
           python -m py_compile user_side/personal_experiment/broker/moomoo_paper.py
+          python -m py_compile user_side/personal_experiment/broker/moomoo_rest.py
+          python -m py_compile user_side/personal_experiment/broker/moomoo_rest_paper.py
+          python -m py_compile user_side/personal_experiment/broker/moomoo_shadow.py
       - name: Run deterministic smoke tests
         run: |
           python -m unittest discover -s tests -p "test_scalping_smoke.py" -v
           python -m unittest discover -s tests -p "test_adaptive_learning.py" -v
           python -m unittest discover -s tests -p "test_moomoo_broker_safety.py" -v
+          python -m unittest discover -s tests -p "test_moomoo_rest_paper.py" -v
