@@ -1,4 +1,4 @@
-"""Azure Functions persistence for the simulation-only experiment."""
+"""Azure Functions persistence for Kallisto simulation and paper-shadow state."""
 
 from __future__ import annotations
 
@@ -18,6 +18,8 @@ STATE_FILES = (
     "portfolio_state.json", "trade_log.csv", "daily_performance.csv", "decision_log.jsonl", "api_costs.csv",
     "baseline_portfolio_state.json", "baseline_trade_log.csv", "baseline_daily_performance.csv", "baseline_decision_log.jsonl",
     "adaptive_config.json", "weekly_evaluations.jsonl", "improvement_metrics.csv", "strategy_versions.csv", "baseline_replay.csv",
+    # Separate Moomoo paper-shadow state. These files never replace simulation state.
+    "moomoo_shadow_state.json", "moomoo_paper_log.jsonl",
 )
 
 
