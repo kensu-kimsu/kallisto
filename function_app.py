@@ -1,9 +1,12 @@
-"""Azure Functions entry point for Final V1.
+"""Azure Functions entry point for Kallisto.
 
 Runs short simulation cycles around U.S. market hours on weekdays. A cheap
 New York time guard runs before Blob Storage sync so the Flex Consumption app
-stays as close to free as possible. The strategy's own NYSE calendar/time
-guards remain the final authority on whether trading work is needed.
+stays as close to free as possible.
+
+When KALLISTO_MOOMOO_PAPER_ENABLED=true, the same timer also mirrors only *new*
+Kallisto broker events to Moomoo's REST simulated-trading account. Historical
+decisions are never replayed, and Moomoo live-money endpoints are not used.
 """
 
 from __future__ import annotations
@@ -13,7 +16,7 @@ import os
 from datetime import datetime, time
 from zoneinfo import ZoneInfo
 
-# These must be set before importing the scalping modules so their path constants
+# These must be set before importing the Kallisto modules so their path constants
 # point to Azure Functions' writable temporary filesystem rather than the package.
 os.environ.setdefault("SCALPING_RUN_ROOT", "/tmp/scalping_v1")
 os.environ.setdefault("SCALPING_OUTPUT_ROOT", "/tmp/scalping_output")
@@ -22,6 +25,10 @@ os.environ.setdefault("SCALPING_README_PATH", "/tmp/scalping_output/README.md")
 import azure.functions as func
 
 from user_side.personal_experiment.azure_runtime import sync_down, sync_up
+from user_side.personal_experiment.broker.moomoo_shadow import (
+    paper_enabled,
+    run_paper_shadow_cycle,
+)
 from user_side.personal_experiment.scalping_v1 import main as run_scalping_cycle
 
 app = func.FunctionApp()
@@ -45,13 +52,12 @@ def _inside_broad_market_window() -> bool:
     use_monitor=True,
 )
 def scalping_timer(timer: func.TimerRequest) -> None:
-    """Execute one guarded five-minute Final V1 cycle."""
+    """Execute one guarded five-minute Kallisto cycle."""
     if timer.past_due:
-        logging.warning("Final V1 timer invocation is past due; evaluating guarded cycle now.")
+        logging.warning("Kallisto timer invocation is past due; evaluating guarded cycle now.")
 
-    # Avoid Blob Storage reads/writes and API setup outside the relevant ET window.
     if not _inside_broad_market_window():
-        logging.info("Outside broad New York market window; skipping Final V1 cycle.")
+        logging.info("Outside broad New York market window; skipping Kallisto cycle.")
         return
 
     if not os.environ.get("OPENAI_API_KEY"):
@@ -59,7 +65,19 @@ def scalping_timer(timer: func.TimerRequest) -> None:
 
     sync_down()
     try:
+        # The six-month simulation remains the primary experiment and is always run.
         run_scalping_cycle()
+
+        # Paper execution is optional and isolated. A Moomoo outage must never
+        # corrupt or stop the simulation experiment.
+        if paper_enabled():
+            try:
+                paper_result = run_paper_shadow_cycle()
+                logging.info("Kallisto Moomoo paper cycle: %s", paper_result)
+            except Exception:
+                logging.exception(
+                    "Moomoo paper shadow cycle failed; simulation state remains authoritative."
+                )
     finally:
         # Persist even when a data/API exception occurs after state changed.
         sync_up()
