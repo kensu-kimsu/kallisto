@@ -96,18 +96,18 @@ The frozen `V1.0` risk replay provides a low-cost counterfactual control using t
 | Metric | Current value |
 |---|---:|
 | Strategy version | **V1.0** |
-| Completed sessions | 5 |
-| Completed trades | 45 |
-| Kallisto adaptive equity | **$995.53** |
-| Kallisto cumulative return | **-0.45%** |
-| Frozen V1.0 risk-replay equity | $995.77 |
-| Frozen V1.0 risk-replay return | -0.42% |
-| Kallisto vs frozen V1.0 risk replay | -0.02% |
-| S&P 500 return from experiment base | -1.30% |
-| Nasdaq-100 return from experiment base | -2.86% |
-| Rolling 5-session alpha vs stronger benchmark | 0.94 pp |
-| Rolling 5-session win rate | 44.44% |
-| Rolling 5-session profit factor | 0.90 |
+| Completed sessions | 6 |
+| Completed trades | 56 |
+| Kallisto adaptive equity | **$1,016.83** |
+| Kallisto cumulative return | **1.68%** |
+| Frozen V1.0 risk-replay equity | $1,017.68 |
+| Frozen V1.0 risk-replay return | 1.77% |
+| Kallisto vs frozen V1.0 risk replay | -0.08% |
+| S&P 500 return from experiment base | -1.11% |
+| Nasdaq-100 return from experiment base | -3.05% |
+| Rolling 5-session alpha vs stronger benchmark | 1.81 pp |
+| Rolling 5-session win rate | 46.67% |
+| Rolling 5-session profit factor | 1.46 |
 | Maximum drawdown | 0.84% |
 
 ### Beating-the-market and frozen-V1 graph
@@ -211,10 +211,10 @@ Every paid trading-decision call and weekly evaluator call records token usage a
 <!-- API_COST_SUMMARY_START -->
 | Cost period | API cost (USD) | API calls | Input tokens | Output tokens |
 |---|---:|---:|---:|---:|
-| Average daily | $0.0329 | 19.8 | 137,610 | 4,470 |
-| Average weekly | $0.0822 | 49.5 | 344,026 | 11,175 |
-| Average monthly | $0.1644 | 99.0 | 688,051 | 22,350 |
-| **Total actual** | **$0.1644** | **99** | **688,051** | **22,350** |
+| Average daily | $0.0331 | 19.8 | 137,573 | 4,663 |
+| Average weekly | $0.0993 | 59.5 | 412,718 | 13,988 |
+| Average monthly | $0.1987 | 119.0 | 825,436 | 27,976 |
+| **Total actual** | **$0.1987** | **119** | **825,436** | **27,976** |
 <!-- API_COST_SUMMARY_END -->
 
 OpenAI billing remains the source of truth for actual API charges.
