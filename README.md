@@ -96,18 +96,18 @@ The frozen `V1.0` risk replay provides a low-cost counterfactual control using t
 | Metric | Current value |
 |---|---:|
 | Strategy version | **V1.0** |
-| Completed sessions | 7 |
-| Completed trades | 62 |
-| Kallisto adaptive equity | **$1,017.82** |
-| Kallisto cumulative return | **1.78%** |
-| Frozen V1.0 risk-replay equity | $1,018.67 |
-| Frozen V1.0 risk-replay return | 1.87% |
+| Completed sessions | 8 |
+| Completed trades | 65 |
+| Kallisto adaptive equity | **$1,009.83** |
+| Kallisto cumulative return | **0.98%** |
+| Frozen V1.0 risk-replay equity | $1,010.67 |
+| Frozen V1.0 risk-replay return | 1.07% |
 | Kallisto vs frozen V1.0 risk replay | -0.08% |
-| S&P 500 return from experiment base | -0.45% |
-| Nasdaq-100 return from experiment base | -1.88% |
-| Rolling 5-session alpha vs stronger benchmark | 2.45 pp |
-| Rolling 5-session win rate | 51.22% |
-| Rolling 5-session profit factor | 2.37 |
+| S&P 500 return from experiment base | -1.78% |
+| Nasdaq-100 return from experiment base | -4.77% |
+| Rolling 5-session alpha vs stronger benchmark | 1.48 pp |
+| Rolling 5-session win rate | 47.22% |
+| Rolling 5-session profit factor | 1.63 |
 | Maximum drawdown | 0.84% |
 
 ### Beating-the-market and frozen-V1 graph
@@ -211,10 +211,10 @@ Every paid trading-decision call and weekly evaluator call records token usage a
 <!-- API_COST_SUMMARY_START -->
 | Cost period | API cost (USD) | API calls | Input tokens | Output tokens |
 |---|---:|---:|---:|---:|
-| Average daily | $0.0331 | 19.9 | 137,822 | 4,742 |
-| Average weekly | $0.1158 | 69.5 | 482,376 | 16,597 |
-| Average monthly | $0.2316 | 139.0 | 964,752 | 33,194 |
-| **Total actual** | **$0.2316** | **139** | **964,752** | **33,194** |
+| Average daily | $0.0330 | 19.9 | 137,713 | 4,662 |
+| Average weekly | $0.1319 | 79.5 | 550,853 | 18,650 |
+| Average monthly | $0.2639 | 159.0 | 1,101,706 | 37,300 |
+| **Total actual** | **$0.2639** | **159** | **1,101,706** | **37,300** |
 <!-- API_COST_SUMMARY_END -->
 
 OpenAI billing remains the source of truth for actual API charges.
