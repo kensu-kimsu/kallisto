@@ -122,7 +122,7 @@ def _dashboard() -> str:
         "- Platform fee: $0.99 per order.",
         "- Settlement fee: $0.003/share, capped at 1% of transaction amount.",
         "- SEC fee: sells only, $0.0000206 × transaction amount, minimum $0.01/trade.",
-        "- FINRA TAF: sells only, $0.000195/share, minimum $0.01 and maximum $9.79/trade.",
+        "- FINRA TAF: $0/share under the current published Moomoo AU live fee schedule.",
         "- CAT fee: NMS stocks $0.000003/share.",
         "- Security-specific ADR custody and stock-borrow fees are included only when an applicable amount is supplied; Kallisto does not invent unknown fees.",
         "",
