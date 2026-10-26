@@ -74,7 +74,7 @@ def create_daily_journal(row: dict, trades: list[dict]) -> Path:
     else:
         for trade in adjusted:
             lines.append(f"- {trade['ticker']} {trade['side']} | {trade['shares']} shares | gross ${float(trade['gross_pnl_usd']):,.2f} | fees ${float(trade['fees_usd']):,.2f} | net ${float(trade['net_pnl_usd']):,.2f} | {trade['exit_reason']}")
-    lines += ["", "## Fee-model note", "", "- Headline Kallisto P/L is reported net of modeled Moomoo Australia US-stock transaction fees.", "- Commission is $0; modeled costs include the $0.99 platform fee per order, settlement fee, SEC sell fee and CAT fee.", "- Security-specific ADR custody and stock-borrow fees are included only when explicitly supplied; they are not invented when unavailable.", "", "## Kallisto automation", "", "- Autonomous simulation with bounded adaptive self-evaluation.", "- No manual trade approval.", "- All positions close in the same NYSE session.", ""]
+    lines += ["", "## Fee-model note", "", "- Headline Kallisto P/L is reported net of modeled Moomoo Australia US-stock transaction fees.", "- Commission is $0; modeled costs include the $0.99 platform fee per order, settlement fee, SEC sell fee, FINRA TAF and CAT fee.", "- Security-specific ADR custody and stock-borrow fees are included only when explicitly supplied; they are not invented when unavailable.", "", "## Kallisto automation", "", "- Autonomous simulation with bounded adaptive self-evaluation.", "- No manual trade approval.", "- All positions close in the same NYSE session.", ""]
     path = JOURNAL_ROOT / f"{row['date']}.md"
     path.write_text("\n".join(lines), encoding="utf-8")
     return path
