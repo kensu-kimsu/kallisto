@@ -22,6 +22,8 @@ def build_prompt(state: dict, candidates: list[dict], now_et: datetime, config: 
     titan_min = float(config.get("titan_min_target_pct", MIN_TARGET_PCT))
     microcap_min = float(config.get("microcap_min_target_pct", 0.009))
     learning_notes = str(config.get("learning_notes", "Original Kallisto V1 rules only."))
+    fee_multiple = float(config.get("fee_gate_min_gross_to_fees", 1.50))
+    min_net_profit_pct = float(config.get("fee_gate_min_net_profit_pct", 0.0025))
     version = str(config.get("version", "V1.0"))
     payload = [{
         "ticker": c["ticker"], "name": c.get("name"), "universe": c["universe"],
@@ -83,6 +85,9 @@ SIMULATION RULES
 - Proposal confidence must be at least {min_confidence:.2f} to pass validation.
 - Deterministic code can raise target distance to maintain reward/risk.
 - There is no daily trade-count target. Do not force weak trades.
+- Transaction costs matter. Prefer fewer, higher-conviction setups with enough price movement to justify a round trip.
+- Deterministic code will reject an entry unless expected gross target profit is at least {fee_multiple:.2f}x modeled Moomoo AU round-trip fees and expected net target profit is at least {min_net_profit_pct * 100:.2f}% of current equity.
+- Do not lower target quality merely to generate more trades.
 
 CANDIDATES
 {json.dumps(payload, indent=2, default=str)}
