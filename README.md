@@ -109,10 +109,6 @@ The frozen `V1.0` risk replay provides a low-cost counterfactual control using t
 | Gross simulator vs frozen V1.0 risk replay | -0.08% |
 | S&P 500 return from experiment base | -2.24% |
 | Nasdaq-100 return from experiment base | -4.83% |
-| Rolling 5-session alpha (gross adaptive metric) | 1.93 pp |
-| Rolling 5-session win rate (gross adaptive metric) | 44.44% |
-| Rolling 5-session profit factor (gross adaptive metric) | 1.33 |
-| Maximum drawdown (gross simulator metric) | 1.07% |
 
 ### Fee treatment
 
@@ -128,7 +124,7 @@ The frozen `V1.0` risk replay provides a low-cost counterfactual control using t
 
 ![Kallisto fee-adjusted equity vs market](docs/results/scalping_equity_comparison.png)
 
-### Kallisto self-improvement graphs
+### Gross adaptive-learning research graphs
 
 ![Kallisto rolling 5-session adaptive performance](docs/results/self_improvement_returns.png)
 
