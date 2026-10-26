@@ -16,6 +16,7 @@ from pathlib import Path
 from openai import OpenAI
 
 from user_side.personal_experiment.scalping_api_costs import record_api_call
+from user_side.personal_experiment.scalping_fees import fee_adjusted_trade
 from user_side.personal_experiment.scalping_state import DAILY_LOG, TRADE_LOG
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -152,7 +153,7 @@ def _valid_daily_rows() -> list[dict]:
 
 
 def _valid_trade_rows() -> list[dict]:
-    return [row for row in _read_csv(TRADE_LOG) if (row.get("session_date") or "") >= CLEAN_START_DATE]
+    return [fee_adjusted_trade(row) for row in _read_csv(TRADE_LOG) if (row.get("session_date") or "") >= CLEAN_START_DATE]
 
 
 def _safe_float(value, default=0.0) -> float:
@@ -164,8 +165,8 @@ def _safe_float(value, default=0.0) -> float:
 
 
 def _profit_factor(trades: list[dict]) -> float:
-    wins = sum(max(0.0, _safe_float(t.get("pnl_usd"))) for t in trades)
-    losses = abs(sum(min(0.0, _safe_float(t.get("pnl_usd"))) for t in trades))
+    wins = sum(max(0.0, _safe_float(t.get("net_pnl_usd"), t.get("pnl_usd"))) for t in trades)
+    losses = abs(sum(min(0.0, _safe_float(t.get("net_pnl_usd"), t.get("pnl_usd"))) for t in trades))
     if losses == 0:
         return 99.0 if wins > 0 else 0.0
     return wins / losses
@@ -189,9 +190,25 @@ def compute_metrics(baseline_daily_path: Path | None = None) -> dict:
     dates = {r.get("date") for r in last5}
     last5_trades = [t for t in trades if t.get("session_date") in dates]
 
+    # Kallisto learning is based on broker-fee-adjusted P/L, not gross simulator P/L.
+    net_by_date: dict[str, float] = {}
+    running_equity = 1000.0
+    trades_by_date: dict[str, list[dict]] = {}
+    for trade in trades:
+        trades_by_date.setdefault(str(trade.get("session_date") or ""), []).append(trade)
+    for row in daily:
+        day = str(row.get("date") or "")
+        for trade in trades_by_date.get(day, []):
+            running_equity += _safe_float(trade.get("net_pnl_usd"))
+        net_by_date[day] = running_equity
+
     if last5:
-        first_start = _safe_float(last5[0].get("starting_equity"), 1000.0)
-        last_end = _safe_float(last5[-1].get("ending_equity"), first_start)
+        first_day = str(last5[0].get("date") or "")
+        first_index = next((i for i, r in enumerate(daily) if str(r.get("date") or "") == first_day), 0)
+        prior_day = str(daily[first_index - 1].get("date") or "") if first_index > 0 else None
+        first_start = net_by_date.get(prior_day, 1000.0) if prior_day else 1000.0
+        last_day = str(last5[-1].get("date") or "")
+        last_end = net_by_date.get(last_day, first_start)
         roll_return = ((last_end / first_start) - 1) * 100 if first_start else 0.0
         sp0 = _safe_float(last5[0].get("sp500_normalized"), 1000.0)
         sp1 = _safe_float(last5[-1].get("sp500_normalized"), sp0)
@@ -203,9 +220,9 @@ def compute_metrics(baseline_daily_path: Path | None = None) -> dict:
     else:
         roll_return = sp_ret = nd_ret = alpha = 0.0
 
-    wins = sum(_safe_float(t.get("pnl_usd")) > 0 for t in last5_trades)
+    wins = sum(_safe_float(t.get("net_pnl_usd"), t.get("pnl_usd")) > 0 for t in last5_trades)
     win_rate = wins / len(last5_trades) * 100 if last5_trades else 0.0
-    equities = [_safe_float(r.get("ending_equity"), 1000.0) for r in daily]
+    equities = [net_by_date.get(str(r.get("date") or ""), 1000.0) for r in daily]
     adaptive_equity = equities[-1] if equities else 1000.0
 
     baseline_equity = 1000.0
@@ -223,7 +240,6 @@ def compute_metrics(baseline_daily_path: Path | None = None) -> dict:
         "max_drawdown_pct": _max_drawdown(equities), "adaptive_equity": adaptive_equity,
         "baseline_equity": baseline_equity, "adaptive_vs_baseline_pct": adaptive_vs_baseline,
     }
-
 
 def record_improvement_snapshot(day: str, baseline_daily_path: Path | None = None) -> dict:
     ensure_learning_state()
