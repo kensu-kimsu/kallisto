@@ -61,6 +61,7 @@ class ScalpingSmokeTests(unittest.TestCase):
             candidate=candidate,
             now_et=datetime(2026, 10, 8, 10, 0, tzinfo=NY),
             current_equity=1000.0,
+            config={"fee_gate_min_gross_to_fees": 0.0, "fee_gate_min_net_profit_pct": -1.0},
         )
         self.assertIsNotNone(opened)
         notional = opened["shares"] * opened["entry_price"]
@@ -68,6 +69,64 @@ class ScalpingSmokeTests(unittest.TestCase):
         self.assertLessEqual(notional, 300.01)
         self.assertLessEqual(risk, 5.01)
         self.assertGreaterEqual(state["cash"], 150.0)
+
+    def test_fee_gate_rejects_uneconomic_microcap_scalp(self):
+        state = {
+            "cash": 1000.0, "positions": {}, "session_start_equity": 1000.0,
+            "high_water_mark": 1000.0, "paused": False,
+        }
+        proposal = {
+            "ticker": "PENNY", "side": "LONG", "target_pct": 0.035,
+            "confidence": 0.70, "rationale": "test",
+        }
+        candidate = {
+            "ticker": "PENNY", "universe": "microcap",
+            "technical": {"price": 0.02, "atr_pct": 0.018},
+        }
+        config = {
+            "risk_per_trade_pct": 0.0075, "max_position_pct": 0.45,
+            "max_open_risk_pct": 0.015, "max_gross_exposure_pct": 0.75,
+            "min_cash_reserve_pct": 0.20, "reward_to_risk_floor": 2.0,
+            "microcap_min_target_pct": 0.035,
+            "fee_gate_min_gross_to_fees": 1.50,
+            "fee_gate_min_net_profit_pct": 0.0025,
+        }
+        opened = open_simulated_trade(
+            state=state, proposal=proposal, candidate=candidate,
+            now_et=datetime(2026, 10, 26, 10, 0, tzinfo=NY),
+            current_equity=1000.0, config=config,
+        )
+        self.assertIsNone(opened)
+
+    def test_fee_gate_allows_target_that_clears_costs(self):
+        state = {
+            "cash": 1000.0, "positions": {}, "session_start_equity": 1000.0,
+            "high_water_mark": 1000.0, "paused": False,
+        }
+        proposal = {
+            "ticker": "TEST", "side": "LONG", "target_pct": 0.015,
+            "confidence": 0.70, "rationale": "test",
+        }
+        candidate = {
+            "ticker": "TEST", "universe": "titan",
+            "technical": {"price": 100.0, "atr_pct": 0.005},
+        }
+        config = {
+            "version": "V1.1", "risk_per_trade_pct": 0.0075,
+            "max_position_pct": 0.45, "max_open_risk_pct": 0.015,
+            "max_gross_exposure_pct": 0.75, "min_cash_reserve_pct": 0.20,
+            "reward_to_risk_floor": 2.0, "titan_min_target_pct": 0.015,
+            "fee_gate_min_gross_to_fees": 1.50,
+            "fee_gate_min_net_profit_pct": 0.0025,
+        }
+        opened = open_simulated_trade(
+            state=state, proposal=proposal, candidate=candidate,
+            now_et=datetime(2026, 10, 26, 10, 0, tzinfo=NY),
+            current_equity=1000.0, config=config,
+        )
+        self.assertIsNotNone(opened)
+        self.assertGreater(opened["expected_net_profit_at_target"], 2.5)
+        self.assertEqual(opened["strategy_version"], "V1.1")
 
     def test_same_bar_stop_is_conservative(self):
         pos = {
@@ -128,6 +187,7 @@ class ScalpingSmokeTests(unittest.TestCase):
     def test_moomoo_sell_order_includes_sec_minimum(self):
         fees = order_fees(shares=1, price=100.0, is_sell=True)
         self.assertAlmostEqual(fees.sec_fee, 0.01, places=8)
+        self.assertAlmostEqual(fees.taf_fee, 0.01, places=8)
         self.assertGreater(fees.total, 1.0)
 
     def test_round_trip_charges_platform_fee_on_both_orders(self):
