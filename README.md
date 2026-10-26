@@ -98,12 +98,12 @@ The frozen `V1.0` risk replay provides a low-cost counterfactual control using t
 | Strategy version | **V1.0** |
 | Completed sessions | 9 |
 | Completed trades | 72 |
-| **Kallisto net equity after modeled Moomoo AU fees** | **$794.28** |
-| **Kallisto net cumulative return** | **-20.57%** |
+| **Kallisto net equity after modeled Moomoo AU fees** | **$780.24** |
+| **Kallisto net cumulative return** | **-21.98%** |
 | Simulator gross equity before fees | $1,006.92 |
 | Simulator gross cumulative return | 0.69% |
 | Gross trading P/L | $6.92 |
-| Modeled Moomoo AU transaction fees | **$212.64** |
+| Modeled Moomoo AU transaction fees | **$226.68** |
 | Frozen V1.0 risk-replay equity (gross research control) | $1,007.76 |
 | Frozen V1.0 risk-replay return (gross research control) | 0.78% |
 | Gross simulator vs frozen V1.0 risk replay | -0.08% |
@@ -120,7 +120,7 @@ The frozen `V1.0` risk replay provides a low-cost counterfactual control using t
 - Platform fee: $0.99 per order.
 - Settlement fee: $0.003/share, capped at 1% of transaction amount.
 - SEC fee: sells only, $0.0000206 × transaction amount, minimum $0.01/trade.
-- FINRA TAF: $0/share under the current published Moomoo AU schedule.
+- FINRA TAF: sells only, $0.000195/share, minimum $0.01 and maximum $9.79/trade.
 - CAT fee: NMS stocks $0.000003/share.
 - Security-specific ADR custody and stock-borrow fees are added only when an applicable amount is known; Kallisto does not invent an unknown fee.
 
