@@ -1,6 +1,6 @@
 import unittest
 
-from user_side.personal_experiment.adaptive_learning import DEFAULT_CONFIG, _bounded_config, _next_version
+from user_side.personal_experiment.adaptive_learning import BOUNDS, DEFAULT_CONFIG, _bounded_config, _next_version
 
 
 class AdaptiveLearningTests(unittest.TestCase):
@@ -19,7 +19,7 @@ class AdaptiveLearningTests(unittest.TestCase):
             "learning_notes": "Prefer evidence-backed setups only.",
         }
         bounded = _bounded_config(dict(DEFAULT_CONFIG), proposal)
-        self.assertEqual(bounded["risk_per_trade_pct"], 0.006)
+        self.assertEqual(bounded["risk_per_trade_pct"], BOUNDS["risk_per_trade_pct"][1])
         self.assertEqual(bounded["max_open_positions"], 3)
         self.assertEqual(bounded["min_confidence"], 0.55)
         self.assertEqual(bounded["max_hold_minutes"], 90)
