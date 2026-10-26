@@ -36,6 +36,27 @@ Positive returns, self-improvement and benchmark outperformance are research obj
 - No overnight positions
 - No manual trade approval
 
+## Kallisto V1.1 fee-aware redesign
+
+After transaction-cost modeling showed that V1.0's frequent low-dollar scalps were uneconomic at a $1,000 account size, Kallisto was versioned to **V1.1** rather than silently rewriting the original experiment.
+
+V1.1 changes:
+- risk per trade: **0.75%** of equity
+- maximum open risk: **1.5%**
+- maximum single-position size: **45%** of equity
+- maximum simultaneous positions: **2**
+- minimum confidence: **0.62**
+- reward/risk floor: **2.0**
+- minimum Titan target: **1.5%**
+- minimum microcap target: **3.5%**
+- minimum cash reserve: **20%**
+- fee gate: expected gross target profit must be at least **1.5x modeled round-trip Moomoo AU fees**
+- fee gate: expected net target profit must be at least **0.25% of current equity**
+
+The **2% daily-loss breaker**, **10% portfolio drawdown pause**, no-leverage rule, no-options rule and same-day-flat rule remain unchanged.
+
+The purpose is not simply to take larger risks. It is to **trade less often and require a materially larger expected payoff after fees**. Very low-priced microcaps may now be rejected entirely when per-share settlement costs make the trade uneconomic.
+
 ## Adaptive self-learning loop
 
 Kallisto has a bounded self-evaluation layer. It does **not** retrain GPT weights. Instead, it learns by measuring its completed trades and market-relative performance, then allowing the evaluator to update a small allow-list of strategy parameters and prompt guidance within hard-coded safety ranges.
