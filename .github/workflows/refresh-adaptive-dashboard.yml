@@ -2,17 +2,29 @@ name: Refresh Adaptive Experiment Dashboard
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/refresh-adaptive-dashboard.yml"
+      - "tools/refresh_adaptive_dashboard.py"
   schedule:
+    # Primary post-market refresh plus a retry in case GitHub or Azure is delayed.
     - cron: "30 22 * * 1-5"
+    - cron: "0 23 * * 1-5"
 
 permissions:
   contents: write
   id-token: write
 
+concurrency:
+  group: kallisto-dashboard-refresh
+  cancel-in-progress: false
+
 jobs:
   refresh-dashboard:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,8 +34,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install dashboard dependency
-        run: pip install azure-storage-blob
+      - name: Install dashboard dependencies
+        run: pip install azure-storage-blob pandas-market-calendars
 
       - name: Login to Azure with OIDC
         uses: azure/login@v2
@@ -50,6 +62,61 @@ jobs:
         env:
           SCALPING_STATE_CONTAINER: scalping-v1-state
         run: python tools/refresh_adaptive_dashboard.py
+
+      - name: Verify Azure contains the latest completed NYSE session
+        shell: bash
+        run: |
+          python - <<'PY'
+          import csv
+          import json
+          from datetime import datetime, timedelta
+          from pathlib import Path
+          from zoneinfo import ZoneInfo
+
+          import pandas_market_calendars as mcal
+
+          run_root = Path("user_side/runs/scalping_v1")
+          daily_path = run_root / "daily_performance.csv"
+          portfolio_path = run_root / "portfolio_state.json"
+
+          with daily_path.open(newline="", encoding="utf-8") as f:
+              rows = list(csv.DictReader(f))
+          latest_daily = rows[-1]["date"] if rows else None
+
+          portfolio = {}
+          if portfolio_path.exists():
+              portfolio = json.loads(portfolio_path.read_text(encoding="utf-8"))
+          state_session = portfolio.get("session_date")
+
+          now_et = datetime.now(ZoneInfo("America/New_York"))
+          cal = mcal.get_calendar("NYSE")
+          schedule = cal.schedule(
+              start_date=(now_et.date() - timedelta(days=10)),
+              end_date=now_et.date(),
+          )
+          expected = schedule.index[-1].date().isoformat() if not schedule.empty else None
+
+          # At the scheduled post-market refresh times the current NYSE session
+          # should already be finalized. For manual runs before 16:20 ET, do not
+          # demand today's row yet.
+          if now_et.time().hour < 16 or (now_et.time().hour == 16 and now_et.time().minute < 20):
+              if len(schedule.index) >= 2:
+                  expected = schedule.index[-2].date().isoformat()
+
+          print(f"New York time: {now_et.isoformat()}")
+          print(f"Expected latest completed NYSE session: {expected}")
+          print(f"Azure portfolio session_date: {state_session}")
+          print(f"Azure/GitHub daily_performance latest date after download: {latest_daily}")
+
+          if expected and latest_daily != expected:
+              if state_session == expected:
+                  raise SystemExit(
+                      f"STALE_DAILY_SUMMARY: Azure state reached {expected}, but daily_performance.csv ends at {latest_daily}."
+                  )
+              raise SystemExit(
+                  f"STALE_AZURE_STATE: expected {expected}, but portfolio state is {state_session} and daily results end at {latest_daily}."
+              )
+          PY
 
       - name: Commit refreshed experiment dashboard
         shell: bash
