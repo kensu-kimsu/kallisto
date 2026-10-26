@@ -41,6 +41,8 @@ DEFAULT_CONFIG = {
     "max_hold_minutes": 75,
     "microcap_min_target_pct": 0.009,
     "titan_min_target_pct": 0.0045,
+    "fee_gate_min_gross_to_fees": 1.50,
+    "fee_gate_min_net_profit_pct": 0.0025,
     "learning_notes": "Use the original Kallisto V1 setup priorities without adaptive preference changes.",
     "last_evaluation_session_count": 0,
     "last_change_session_count": 0,
@@ -48,16 +50,16 @@ DEFAULT_CONFIG = {
 
 BOUNDS = {
     "min_confidence": (0.55, 0.75),
-    "risk_per_trade_pct": (0.003, 0.006),
-    "max_open_risk_pct": (0.009, 0.018),
+    "risk_per_trade_pct": (0.003, 0.010),
+    "max_open_risk_pct": (0.009, 0.020),
     "max_gross_exposure_pct": (0.50, 0.80),
-    "max_position_pct": (0.20, 0.35),
+    "max_position_pct": (0.20, 0.50),
     "min_cash_reserve_pct": (0.15, 0.30),
     "reward_to_risk_floor": (1.3, 2.0),
     "max_open_positions": (1, 3),
     "max_hold_minutes": (45, 90),
-    "microcap_min_target_pct": (0.006, 0.015),
-    "titan_min_target_pct": (0.0035, 0.008),
+    "microcap_min_target_pct": (0.006, 0.050),
+    "titan_min_target_pct": (0.0035, 0.020),
 }
 
 IMPROVEMENT_FIELDS = [
@@ -90,6 +92,43 @@ def load_config() -> dict:
         cfg.update(json.loads(CONFIG_PATH.read_text(encoding="utf-8")))
     except (json.JSONDecodeError, OSError):
         pass
+
+    # Manual, versioned V1.1 migration requested after fee-adjusted reporting
+    # showed that high-frequency low-dollar scalps were uneconomic under the
+    # intended Moomoo AU fee schedule. This applies once to old V1.0 state.
+    if cfg.get("version") == "V1.0":
+        daily = _valid_daily_rows()
+        trades = _valid_trade_rows()
+        cfg.update({
+            "version": "V1.1",
+            "min_confidence": 0.62,
+            "risk_per_trade_pct": 0.0075,
+            "max_open_risk_pct": 0.015,
+            "max_gross_exposure_pct": 0.75,
+            "max_position_pct": 0.45,
+            "min_cash_reserve_pct": 0.20,
+            "reward_to_risk_floor": 2.0,
+            "max_open_positions": 2,
+            "max_hold_minutes": 75,
+            "microcap_min_target_pct": 0.035,
+            "titan_min_target_pct": 0.015,
+            "fee_gate_min_gross_to_fees": 1.50,
+            "fee_gate_min_net_profit_pct": 0.0025,
+            "learning_notes": (
+                "Fee-aware V1.1: trade less often, prefer higher-quality setups, "
+                "require larger target distances, and avoid trades whose modeled "
+                "round-trip Moomoo AU fees consume too much expected profit."
+            ),
+            "last_change_session_count": len(daily),
+        })
+        CONFIG_PATH.write_text(json.dumps(cfg, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        _append_version(
+            cfg,
+            "Manual V1.1 fee-aware redesign after transaction-cost review",
+            len(daily),
+            len(trades),
+            datetime.now().date().isoformat(),
+        )
     return cfg
 
 
