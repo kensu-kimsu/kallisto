@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from user_side.personal_experiment.scalping_fees import round_trip_fees
 from user_side.personal_experiment.scalping_state import TRADE_FIELDS, TRADE_LOG, append_row
 
 RISK_PER_TRADE_PCT = 0.005
@@ -18,6 +19,8 @@ REWARD_TO_RISK_FLOOR = 1.5
 MAX_OPEN_POSITIONS = 3
 MAX_HOLD_MINUTES = 75
 MIN_TARGET_BY_UNIVERSE = {"microcap": 0.009, "titan": 0.0045}
+FEE_GATE_MIN_GROSS_TO_FEES = 1.50
+FEE_GATE_MIN_NET_PROFIT_PCT = 0.0025
 
 
 def _cfg(config: dict | None, key: str, default):
@@ -98,6 +101,24 @@ def open_simulated_trade(*, state: dict, proposal: dict, candidate: dict, now_et
     if shares < 1:
         return None
 
+    # Fee-aware viability gate. Kallisto should not take a scalp where the target
+    # is mostly consumed by the intended broker's round-trip transaction costs.
+    fee_estimate = round_trip_fees(
+        side=proposal["side"],
+        shares=shares,
+        entry_price=entry,
+        exit_price=target,
+    )
+    estimated_fees = float(fee_estimate["total_fee"])
+    expected_gross_profit = shares * abs(target - entry)
+    expected_net_profit = expected_gross_profit - estimated_fees
+    fee_multiple = float(_cfg(config, "fee_gate_min_gross_to_fees", FEE_GATE_MIN_GROSS_TO_FEES))
+    min_net_profit_pct = float(_cfg(config, "fee_gate_min_net_profit_pct", FEE_GATE_MIN_NET_PROFIT_PCT))
+    if expected_gross_profit < estimated_fees * fee_multiple:
+        return None
+    if expected_net_profit < current_equity * min_net_profit_pct:
+        return None
+
     reserved_capital = shares * entry
     state["cash"] = float(state["cash"]) - reserved_capital
     state["positions"][ticker] = {
@@ -107,6 +128,9 @@ def open_simulated_trade(*, state: dict, proposal: dict, candidate: dict, now_et
         "reserved_capital": round(reserved_capital, 6), "confidence": proposal["confidence"],
         "rationale": proposal["rationale"], "breakeven_armed": False,
         "strategy_version": (config or {}).get("version", "V1.0"),
+        "estimated_round_trip_fees": round(estimated_fees, 6),
+        "expected_gross_profit_at_target": round(expected_gross_profit, 6),
+        "expected_net_profit_at_target": round(expected_net_profit, 6),
     }
     return state["positions"][ticker]
 
