@@ -13,6 +13,8 @@ from pathlib import Path
 
 from azure.storage.blob import BlobServiceClient
 
+from user_side.personal_experiment.scalping_fees import fee_adjusted_trade
+
 ROOT = Path(__file__).resolve().parents[1]
 README = ROOT / "README.md"
 RUN_ROOT = ROOT / "user_side" / "runs" / "scalping_v1"
@@ -65,6 +67,12 @@ def _f(value, default=0.0):
 def _dashboard() -> str:
     daily = _rows(RUN_ROOT / "daily_performance.csv")
     trades = _rows(RUN_ROOT / "trade_log.csv")
+    adjusted_trades = [fee_adjusted_trade(t) for t in trades]
+    gross_trade_pnl = sum(_f(t.get("gross_pnl_usd"), 0.0) for t in adjusted_trades)
+    modeled_fees = sum(_f(t.get("fees_usd"), 0.0) for t in adjusted_trades)
+    net_trade_pnl = sum(_f(t.get("net_pnl_usd"), 0.0) for t in adjusted_trades)
+    net_equity = 1000.0 + net_trade_pnl
+    net_return = net_trade_pnl / 1000.0 * 100.0
     improvement = _rows(RUN_ROOT / "improvement_metrics.csv")
     versions = _rows(RUN_ROOT / "strategy_versions.csv")
     baseline = _rows(RUN_ROOT / "baseline_replay.csv")
@@ -89,23 +97,27 @@ def _dashboard() -> str:
         START,
         "## Kallisto adaptive learning dashboard",
         "",
-        "> Simulation only. Kallisto evaluates itself weekly and may make bounded strategy changes only after enough evidence is available.",
+        "> Simulation only. Headline P/L and equity below are net of modeled Moomoo Australia US-stock transaction fees. Adaptive-learning metrics remain separately identified when they are based on the gross simulator series.",
         "",
         "| Metric | Current value |",
         "|---|---:|",
         f"| Strategy version | **{current_version}** |",
         f"| Completed sessions | {sessions} |",
         f"| Completed trades | {len(trades)} |",
-        f"| Kallisto adaptive equity | **${equity:,.2f}** |",
-        f"| Kallisto cumulative return | **{cumulative:.2f}%** |",
+        f"| **Kallisto net equity after modeled Moomoo AU fees** | **${net_equity:,.2f}** |",
+        f"| **Kallisto net cumulative return** | **{net_return:.2f}%** |",
+        f"| Simulator gross equity before fees | ${equity:,.2f} |",
+        f"| Simulator gross cumulative return | {cumulative:.2f}% |",
+        f"| Gross trading P/L | ${gross_trade_pnl:,.2f} |",
+        f"| Modeled Moomoo AU transaction fees | **${modeled_fees:,.2f}** |",
         f"| Frozen V1.0 risk-replay equity | ${baseline_equity:,.2f} |",
         f"| Frozen V1.0 risk-replay return | {baseline_return:.2f}% |",
-        f"| Kallisto vs frozen V1.0 risk replay | {vs_baseline:.2f}% |",
+        f"| Gross simulator vs frozen V1.0 risk replay | {vs_baseline:.2f}% |",
         f"| S&P 500 return from experiment base | {sp_ret:.2f}% |",
         f"| Nasdaq-100 return from experiment base | {ndx_ret:.2f}% |",
-        f"| Rolling 5-session alpha vs stronger benchmark | {alpha:.2f} pp |",
-        f"| Rolling 5-session win rate | {win_rate:.2f}% |",
-        f"| Rolling 5-session profit factor | {pf:.2f} |",
+        f"| Rolling 5-session alpha (gross adaptive metric) | {alpha:.2f} pp |",
+        f"| Rolling 5-session win rate (gross adaptive metric) | {win_rate:.2f}% |",
+        f"| Rolling 5-session profit factor (gross adaptive metric) | {pf:.2f} |",
         f"| Maximum drawdown | {dd:.2f}% |",
         "",
         "### Beating-the-market and frozen-V1 graph",
