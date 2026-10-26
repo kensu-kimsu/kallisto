@@ -7,6 +7,7 @@ and updates repository documentation; it does not place or simulate trades.
 from __future__ import annotations
 
 import csv
+import json
 import os
 from datetime import datetime
 from pathlib import Path
@@ -78,7 +79,14 @@ def _dashboard() -> str:
     baseline = _rows(RUN_ROOT / "baseline_replay.csv")
     latest = improvement[-1] if improvement else {}
     d = daily[-1] if daily else {}
-    current_version = latest.get("version") or (versions[-1].get("version") if versions else "V1.0")
+    active_config = {}
+    config_path = RUN_ROOT / "adaptive_config.json"
+    if config_path.exists():
+        try:
+            active_config = json.loads(config_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            active_config = {}
+    current_version = active_config.get("version") or latest.get("version") or (versions[-1].get("version") if versions else "V1.0")
     equity = _f(d.get("ending_equity"), 1000.0)
     cumulative = _f(d.get("cumulative_return_pct"), 0.0)
     baseline_equity = _f(baseline[-1].get("ending_equity"), 1000.0) if baseline else 1000.0
