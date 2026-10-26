@@ -14,6 +14,7 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
+from user_side.personal_experiment.scalping_fees import round_trip_fees
 from user_side.personal_experiment.scalping_state import TRADE_LOG
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -66,7 +67,14 @@ def refresh_baseline_replay() -> Path:
             exit_price = float(trade["exit_price"])
         except (KeyError, TypeError, ValueError):
             continue
-        pnl = shares * (entry - exit_price) if trade.get("side") == "SHORT" else shares * (exit_price - entry)
+        gross_pnl = shares * (entry - exit_price) if trade.get("side") == "SHORT" else shares * (exit_price - entry)
+        fees = round_trip_fees(
+            side=trade.get("side", "LONG"),
+            shares=shares,
+            entry_price=entry,
+            exit_price=exit_price,
+        )
+        pnl = gross_pnl - float(fees["total_fee"])
         equity += pnl
         day = trade.get("session_date") or datetime.fromisoformat(trade["closed_at"]).date().isoformat()
         by_date[day]["trades"] += 1
