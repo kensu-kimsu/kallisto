@@ -9,7 +9,7 @@ Fee schedule source checked 2026-10-26:
 - Platform fee: USD 0.99 per order
 - Settlement fee: USD 0.003/share, capped at 1% of transaction amount
 - SEC fee: sells only, USD 0.0000206 * transaction amount, minimum USD 0.01/trade
-- FINRA TAF: sells only, USD 0.000195/share, minimum USD 0.01/trade, maximum USD 9.79/trade
+- FINRA TAF: USD 0/share under the current published Moomoo AU live fee schedule
 - CAT fee: NMS stocks USD 0.000003/share
 
 ADR custody fees and stock-borrow fees are security/account specific and cannot
@@ -27,9 +27,7 @@ SETTLEMENT_FEE_CAP_PCT = 0.01
 SEC_FEE_RATE = 0.0000206
 SEC_FEE_MIN = 0.01
 CAT_FEE_PER_SHARE_NMS = 0.000003
-TAF_FEE_PER_SHARE = 0.000195
-TAF_FEE_MIN = 0.01
-TAF_FEE_MAX = 9.79
+TAF_FEE_PER_SHARE = 0.0
 
 
 @dataclass(frozen=True)
@@ -84,7 +82,7 @@ def order_fees(
         SETTLEMENT_FEE_CAP_PCT * amount,
     )
     sec = max(SEC_FEE_MIN, SEC_FEE_RATE * amount) if is_sell and amount > 0 else 0.0
-    taf = min(TAF_FEE_MAX, max(TAF_FEE_MIN, TAF_FEE_PER_SHARE * shares)) if is_sell and shares > 0 else 0.0
+    taf = TAF_FEE_PER_SHARE * shares if is_sell else 0.0
     cat = CAT_FEE_PER_SHARE_NMS * shares
     adr = max(0.0, float(adr_fee_per_share)) * shares
 
