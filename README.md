@@ -116,7 +116,7 @@ The frozen `V1.0` risk replay provides a low-cost counterfactual control using t
 
 | Metric | Current value |
 |---|---:|
-| Strategy version | **V1.0** |
+| Active strategy version | **V1.1** (historical results through V1.0 session 9) |
 | Completed sessions | 9 |
 | Completed trades | 72 |
 | **Kallisto net equity after modeled Moomoo AU fees** | **$794.28** |
