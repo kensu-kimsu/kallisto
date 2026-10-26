@@ -91,28 +91,42 @@ The frozen `V1.0` risk replay provides a low-cost counterfactual control using t
 <!-- ADAPTIVE_DASHBOARD_START -->
 ## Kallisto adaptive learning dashboard
 
-> Simulation only. Kallisto evaluates itself weekly and may make bounded strategy changes only after enough evidence is available.
+> Simulation only. Headline P/L and equity are net of modeled Moomoo Australia US-stock transaction fees. Gross simulator metrics are retained separately for research comparison.
 
 | Metric | Current value |
 |---|---:|
 | Strategy version | **V1.0** |
 | Completed sessions | 9 |
 | Completed trades | 72 |
-| Kallisto adaptive equity | **$1,006.92** |
-| Kallisto cumulative return | **0.69%** |
-| Frozen V1.0 risk-replay equity | $1,007.76 |
-| Frozen V1.0 risk-replay return | 0.78% |
-| Kallisto vs frozen V1.0 risk replay | -0.08% |
+| **Kallisto net equity after modeled Moomoo AU fees** | **$794.28** |
+| **Kallisto net cumulative return** | **-20.57%** |
+| Simulator gross equity before fees | $1,006.92 |
+| Simulator gross cumulative return | 0.69% |
+| Gross trading P/L | $6.92 |
+| Modeled Moomoo AU transaction fees | **$212.64** |
+| Frozen V1.0 risk-replay equity (gross research control) | $1,007.76 |
+| Frozen V1.0 risk-replay return (gross research control) | 0.78% |
+| Gross simulator vs frozen V1.0 risk replay | -0.08% |
 | S&P 500 return from experiment base | -2.24% |
 | Nasdaq-100 return from experiment base | -4.83% |
-| Rolling 5-session alpha vs stronger benchmark | 1.93 pp |
-| Rolling 5-session win rate | 44.44% |
-| Rolling 5-session profit factor | 1.33 |
-| Maximum drawdown | 1.07% |
+| Rolling 5-session alpha (gross adaptive metric) | 1.93 pp |
+| Rolling 5-session win rate (gross adaptive metric) | 44.44% |
+| Rolling 5-session profit factor (gross adaptive metric) | 1.33 |
+| Maximum drawdown (gross simulator metric) | 1.07% |
 
-### Beating-the-market and frozen-V1 graph
+### Fee treatment
 
-![Kallisto vs frozen V1 risk replay, S&P 500 and Nasdaq-100](docs/results/scalping_equity_comparison.png)
+- Moomoo AU commission: $0.
+- Platform fee: $0.99 per order.
+- Settlement fee: $0.003/share, capped at 1% of transaction amount.
+- SEC fee: sells only, $0.0000206 × transaction amount, minimum $0.01/trade.
+- FINRA TAF: $0/share under the current published Moomoo AU schedule.
+- CAT fee: NMS stocks $0.000003/share.
+- Security-specific ADR custody and stock-borrow fees are added only when an applicable amount is known; Kallisto does not invent an unknown fee.
+
+### Beating-the-market graph
+
+![Kallisto fee-adjusted equity vs market](docs/results/scalping_equity_comparison.png)
 
 ### Kallisto self-improvement graphs
 
@@ -128,7 +142,7 @@ The frozen `V1.0` risk replay provides a low-cost counterfactual control using t
 - Evidence gate: at least 20 completed trades plus evaluator confidence of 0.60 or higher.
 - Hard risk limits remain bounded in deterministic code; the evaluator cannot remove them.
 - Every accepted change creates a new version (V1.1, V1.2, ...) and is recorded in `strategy_versions.csv`.
-- The frozen V1.0 replay isolates risk-sizing changes on the same realized trade sequence; it is not a second independent LLM and therefore does not isolate prompt-driven trade-selection changes.
+- Adaptive-learning metrics currently retain the original gross simulator series so the historical experiment is not silently rewritten; fee-adjusted headline P/L is reported separately and prominently.
 
 <!-- ADAPTIVE_DASHBOARD_END -->
 
@@ -234,7 +248,7 @@ GitHub is used for source control, tests, deployment and post-market documentati
 
 Kallisto V1 is simulation only. A future broker connection must preserve the deterministic risk manager and add broker reconciliation, stale-data kill switches, execution-state checks, order idempotency, short eligibility, partial-fill handling and verified end-of-day flat status.
 
-Exact simulated P/L is **not** assumed to transfer 1:1 to real money because live trading adds spreads, latency, queue position, partial fills, rejects, halts, short availability, borrow costs, fees and market impact.
+Exact simulated P/L is **not** assumed to transfer 1:1 to real money because live trading adds spreads, latency, queue position, partial fills, rejects, halts, short availability, borrow costs and market impact. Kallisto's headline simulation P/L now deducts the modeled published Moomoo AU US-stock transaction fees.
 
 ## Validation rule for Day 1
 
