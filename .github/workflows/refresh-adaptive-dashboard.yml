@@ -58,12 +58,21 @@ jobs:
           echo "::add-mask::$CONN"
           echo "AZURE_STORAGE_CONNECTION_STRING=$CONN" >> "$GITHUB_ENV"
 
+      - name: Capture Azure Function App state
+        shell: bash
+        run: |
+          APP_STATE=$(az functionapp show \
+            --name "${{ vars.AZURE_FUNCTIONAPP_NAME }}" \
+            --resource-group "rg-llm-scalper-v1" \
+            --query state -o tsv 2>/dev/null || true)
+          echo "FUNCTION_APP_STATE=${APP_STATE:-UNKNOWN}" >> "$GITHUB_ENV"
+
       - name: Refresh README and charts from Azure
         env:
           SCALPING_STATE_CONTAINER: scalping-v1-state
         run: python tools/refresh_adaptive_dashboard.py
 
-      - name: Verify Azure contains the latest completed NYSE session
+      - name: Record Azure freshness diagnostics
         shell: bash
         run: |
           python - <<'PY'
@@ -103,19 +112,31 @@ jobs:
               if len(schedule.index) >= 2:
                   expected = schedule.index[-2].date().isoformat()
 
-          print(f"New York time: {now_et.isoformat()}")
-          print(f"Expected latest completed NYSE session: {expected}")
-          print(f"Azure portfolio session_date: {state_session}")
-          print(f"Azure/GitHub daily_performance latest date after download: {latest_daily}")
-
+          status = "FRESH"
+          detail = ""
           if expected and latest_daily != expected:
               if state_session == expected:
-                  raise SystemExit(
-                      f"STALE_DAILY_SUMMARY: Azure state reached {expected}, but daily_performance.csv ends at {latest_daily}."
-                  )
-              raise SystemExit(
-                  f"STALE_AZURE_STATE: expected {expected}, but portfolio state is {state_session} and daily results end at {latest_daily}."
-              )
+                  status = "STALE_DAILY_SUMMARY"
+                  detail = f"Azure state reached {expected}, but daily_performance.csv ends at {latest_daily}."
+              else:
+                  status = "STALE_AZURE_STATE"
+                  detail = f"Expected {expected}, but portfolio state is {state_session} and daily results end at {latest_daily}."
+
+          diagnostics = {
+              "checked_at_et": now_et.isoformat(),
+              "function_app_state": __import__("os").environ.get("FUNCTION_APP_STATE", "UNKNOWN"),
+              "expected_latest_completed_nyse_session": expected,
+              "azure_portfolio_session_date": state_session,
+              "azure_last_cycle_et": portfolio.get("last_cycle_et"),
+              "azure_last_decision_et": portfolio.get("last_decision_et"),
+              "daily_performance_latest_date": latest_daily,
+              "status": status,
+              "detail": detail,
+          }
+          out = Path("docs/results/dashboard_refresh_status.json")
+          out.parent.mkdir(parents=True, exist_ok=True)
+          out.write_text(json.dumps(diagnostics, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          print(json.dumps(diagnostics, indent=2, sort_keys=True))
           PY
 
       - name: Commit refreshed experiment dashboard
@@ -130,3 +151,16 @@ jobs:
           git add README.md docs/results user_side/runs/scalping_v1
           git commit -m "docs: refresh adaptive experiment dashboard"
           git push
+
+      - name: Fail visibly when Azure state is stale
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("docs/results/dashboard_refresh_status.json")
+          data = json.loads(p.read_text(encoding="utf-8"))
+          if data.get("status") != "FRESH":
+              raise SystemExit(f"{data.get('status')}: {data.get('detail')}")
+          print("Dashboard source state is fresh.")
+          PY
