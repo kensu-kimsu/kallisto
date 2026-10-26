@@ -8,6 +8,7 @@ from user_side.personal_experiment.scalping_engine import (
     open_simulated_trade,
     stop_pct,
 )
+from user_side.personal_experiment.scalping_fees import order_fees, round_trip_fees
 from user_side.personal_experiment.scalping_session_runner import SEGMENTS
 from user_side.personal_experiment.scalping_strategy import validate_proposals
 from user_side.personal_experiment.scalping_v1 import decision_due
@@ -116,6 +117,22 @@ class ScalpingSmokeTests(unittest.TestCase):
         cost = calculate_cost("gpt-5.6-luna", 10_000, 2_000, 500)
         expected = (8_000 / 1_000_000 * 0.20) + (2_000 / 1_000_000 * 0.02) + (500 / 1_000_000 * 1.20)
         self.assertAlmostEqual(cost["total_cost_usd"], expected, places=10)
+
+    def test_moomoo_buy_order_fee_math(self):
+        fees = order_fees(shares=10, price=100.0, is_sell=False)
+        self.assertAlmostEqual(fees.platform_fee, 0.99, places=8)
+        self.assertAlmostEqual(fees.settlement_fee, 0.03, places=8)
+        self.assertAlmostEqual(fees.sec_fee, 0.0, places=8)
+        self.assertAlmostEqual(fees.cat_fee, 0.00003, places=8)
+
+    def test_moomoo_sell_order_includes_sec_minimum(self):
+        fees = order_fees(shares=1, price=100.0, is_sell=True)
+        self.assertAlmostEqual(fees.sec_fee, 0.01, places=8)
+        self.assertGreater(fees.total, 1.0)
+
+    def test_round_trip_charges_platform_fee_on_both_orders(self):
+        fees = round_trip_fees(side="LONG", shares=1, entry_price=100.0, exit_price=101.0)
+        self.assertGreaterEqual(fees["total_fee"], 1.98)
 
 
 if __name__ == "__main__":
