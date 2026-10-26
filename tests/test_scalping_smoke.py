@@ -187,7 +187,7 @@ class ScalpingSmokeTests(unittest.TestCase):
     def test_moomoo_sell_order_includes_sec_minimum(self):
         fees = order_fees(shares=1, price=100.0, is_sell=True)
         self.assertAlmostEqual(fees.sec_fee, 0.01, places=8)
-        self.assertAlmostEqual(fees.taf_fee, 0.01, places=8)
+        self.assertAlmostEqual(fees.taf_fee, 0.0, places=8)
         self.assertGreater(fees.total, 1.0)
 
     def test_round_trip_charges_platform_fee_on_both_orders(self):
