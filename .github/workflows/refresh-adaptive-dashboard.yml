@@ -142,13 +142,13 @@ jobs:
       - name: Commit refreshed experiment dashboard
         shell: bash
         run: |
-          if git diff --quiet; then
+          git add README.md docs/results user_side/runs/scalping_v1
+          if git diff --cached --quiet; then
             echo "No dashboard changes."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md docs/results user_side/runs/scalping_v1
           git commit -m "docs: refresh adaptive experiment dashboard"
           git push
 
