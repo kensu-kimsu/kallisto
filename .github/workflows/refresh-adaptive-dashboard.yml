@@ -9,9 +9,10 @@ on:
       - ".github/workflows/refresh-adaptive-dashboard.yml"
       - "tools/refresh_adaptive_dashboard.py"
   schedule:
-    # Primary post-market refresh plus a retry in case GitHub or Azure is delayed.
-    - cron: "30 22 * * 1-5"
-    - cron: "0 23 * * 1-5"
+    # GitHub scheduled workflows can be delayed. Retry several times after
+    # the NYSE close so one delayed run does not leave the repo stale.
+    - cron: "15,45 21-23 * * 1-5"
+    - cron: "15,45 0-1 * * 2-6"
 
 permissions:
   contents: write
@@ -24,18 +25,23 @@ concurrency:
 jobs:
   refresh-dashboard:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install dashboard dependencies
-        run: pip install azure-storage-blob pandas-market-calendars
+      - name: Install refresh dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install azure-storage-blob pandas-market-calendars
 
       - name: Login to Azure with OIDC
         uses: azure/login@v2
@@ -47,120 +53,157 @@ jobs:
       - name: Read Function storage connection securely
         shell: bash
         run: |
-          CONN=$(az functionapp config appsettings list \
-            --name "${{ vars.AZURE_FUNCTIONAPP_NAME }}" \
-            --resource-group "rg-llm-scalper-v1" \
-            --query "[?name=='AzureWebJobsStorage'].value | [0]" -o tsv)
-          if [ -z "$CONN" ]; then
-            echo "AzureWebJobsStorage was not found." >&2
+          set -euo pipefail
+          APP_NAME="${{ vars.AZURE_FUNCTIONAPP_NAME }}"
+          if [ -z "$APP_NAME" ]; then
+            echo "AZURE_FUNCTIONAPP_NAME repository variable is missing." >&2
             exit 1
           fi
+
+          CONN=$(az functionapp config appsettings list \
+            --name "$APP_NAME" \
+            --resource-group "rg-llm-scalper-v1" \
+            --query "[?name=='AzureWebJobsStorage'].value | [0]" -o tsv)
+
+          if [ -z "$CONN" ] || [ "$CONN" = "null" ]; then
+            echo "AzureWebJobsStorage was not found on the Function App." >&2
+            exit 1
+          fi
+
           echo "::add-mask::$CONN"
           echo "AZURE_STORAGE_CONNECTION_STRING=$CONN" >> "$GITHUB_ENV"
 
-      - name: Capture Azure Function App state
-        shell: bash
-        run: |
           APP_STATE=$(az functionapp show \
-            --name "${{ vars.AZURE_FUNCTIONAPP_NAME }}" \
+            --name "$APP_NAME" \
             --resource-group "rg-llm-scalper-v1" \
-            --query state -o tsv 2>/dev/null || true)
+            --query state -o tsv)
           echo "FUNCTION_APP_STATE=${APP_STATE:-UNKNOWN}" >> "$GITHUB_ENV"
 
-      - name: Refresh README and charts from Azure
+      - name: Refresh repository snapshot from Azure Blob
         env:
           SCALPING_STATE_CONTAINER: scalping-v1-state
-        run: python tools/refresh_adaptive_dashboard.py
+        run: |
+          set -euo pipefail
+          python tools/refresh_adaptive_dashboard.py
 
-      - name: Record Azure freshness diagnostics
+      - name: Verify downloaded state is current enough
         shell: bash
         run: |
+          set -euo pipefail
           python - <<'PY'
           import csv
           import json
-          from datetime import datetime, timedelta
+          import os
+          from datetime import datetime, timedelta, time
           from pathlib import Path
           from zoneinfo import ZoneInfo
 
           import pandas_market_calendars as mcal
 
-          run_root = Path("user_side/runs/scalping_v1")
-          daily_path = run_root / "daily_performance.csv"
-          portfolio_path = run_root / "portfolio_state.json"
+          root = Path("user_side/runs/scalping_v1")
+          daily_path = root / "daily_performance.csv"
+          state_path = root / "portfolio_state.json"
+
+          if not daily_path.exists():
+              raise SystemExit("daily_performance.csv was not downloaded from Azure Blob Storage.")
+          if not state_path.exists():
+              raise SystemExit("portfolio_state.json was not downloaded from Azure Blob Storage.")
 
           with daily_path.open(newline="", encoding="utf-8") as f:
               rows = list(csv.DictReader(f))
           latest_daily = rows[-1]["date"] if rows else None
 
-          portfolio = {}
-          if portfolio_path.exists():
-              portfolio = json.loads(portfolio_path.read_text(encoding="utf-8"))
-          state_session = portfolio.get("session_date")
+          state = json.loads(state_path.read_text(encoding="utf-8"))
+          state_session = state.get("session_date")
 
           now_et = datetime.now(ZoneInfo("America/New_York"))
           cal = mcal.get_calendar("NYSE")
-          schedule = cal.schedule(
-              start_date=(now_et.date() - timedelta(days=10)),
+          sched = cal.schedule(
+              start_date=now_et.date() - timedelta(days=10),
               end_date=now_et.date(),
           )
-          expected = schedule.index[-1].date().isoformat() if not schedule.empty else None
 
-          # At the scheduled post-market refresh times the current NYSE session
-          # should already be finalized. For manual runs before 16:20 ET, do not
-          # demand today's row yet.
-          if now_et.time().hour < 16 or (now_et.time().hour == 16 and now_et.time().minute < 20):
-              if len(schedule.index) >= 2:
-                  expected = schedule.index[-2].date().isoformat()
+          expected = None
+          if not sched.empty:
+              sessions = [d.date() for d in sched.index]
+              # Before 16:20 ET, the current session is not yet expected to have
+              # its final daily row. After that, today is expected if it is a session.
+              if now_et.date() in sessions and now_et.time() < time(16, 20):
+                  sessions = [d for d in sessions if d < now_et.date()]
+              if sessions:
+                  expected = sessions[-1].isoformat()
 
           status = "FRESH"
           detail = ""
           if expected and latest_daily != expected:
               if state_session == expected:
                   status = "STALE_DAILY_SUMMARY"
-                  detail = f"Azure state reached {expected}, but daily_performance.csv ends at {latest_daily}."
+                  detail = (
+                      f"Azure portfolio state reached {expected}, but "
+                      f"daily_performance.csv ends at {latest_daily}."
+                  )
               else:
                   status = "STALE_AZURE_STATE"
-                  detail = f"Expected {expected}, but portfolio state is {state_session} and daily results end at {latest_daily}."
+                  detail = (
+                      f"Expected completed NYSE session {expected}, but Azure "
+                      f"portfolio state is {state_session} and daily results end at {latest_daily}."
+                  )
 
-          diagnostics = {
+          diag = {
               "checked_at_et": now_et.isoformat(),
-              "function_app_state": __import__("os").environ.get("FUNCTION_APP_STATE", "UNKNOWN"),
+              "function_app_state": os.environ.get("FUNCTION_APP_STATE", "UNKNOWN"),
               "expected_latest_completed_nyse_session": expected,
               "azure_portfolio_session_date": state_session,
-              "azure_last_cycle_et": portfolio.get("last_cycle_et"),
-              "azure_last_decision_et": portfolio.get("last_decision_et"),
+              "azure_last_cycle_et": state.get("last_cycle_et"),
+              "azure_last_decision_et": state.get("last_decision_et"),
               "daily_performance_latest_date": latest_daily,
               "status": status,
               "detail": detail,
           }
+
           out = Path("docs/results/dashboard_refresh_status.json")
           out.parent.mkdir(parents=True, exist_ok=True)
-          out.write_text(json.dumps(diagnostics, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-          print(json.dumps(diagnostics, indent=2, sort_keys=True))
+          out.write_text(json.dumps(diag, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+          print(json.dumps(diag, indent=2, sort_keys=True))
+
+          # Do not block the commit. We want the diagnostic file pushed even if
+          # Azure itself is stale; the final step will surface the failure.
           PY
 
       - name: Commit refreshed experiment dashboard
         shell: bash
         run: |
-          git add README.md docs/results user_side/runs/scalping_v1
-          if git diff --cached --quiet; then
-            echo "No dashboard changes."
-            exit 0
-          fi
+          set -euo pipefail
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "docs: refresh adaptive experiment dashboard"
-          git push
 
-      - name: Fail visibly when Azure state is stale
+          # A scheduled run may begin from an older checkout if another commit lands
+          # while it is running. Rebase before committing so the refresh can push.
+          git pull --rebase origin main
+
+          git add README.md docs/results user_side/runs/scalping_v1
+
+          if git diff --cached --quiet; then
+            echo "No dashboard changes to commit."
+          else
+            git commit -m "docs: refresh adaptive experiment dashboard"
+            git push origin HEAD:main
+          fi
+
+      - name: Report stale Azure source after preserving diagnostics
         shell: bash
         run: |
+          set -euo pipefail
           python - <<'PY'
           import json
           from pathlib import Path
-          p = Path("docs/results/dashboard_refresh_status.json")
-          data = json.loads(p.read_text(encoding="utf-8"))
+
+          data = json.loads(
+              Path("docs/results/dashboard_refresh_status.json").read_text(encoding="utf-8")
+          )
           if data.get("status") != "FRESH":
               raise SystemExit(f"{data.get('status')}: {data.get('detail')}")
-          print("Dashboard source state is fresh.")
+          print("Kallisto GitHub snapshot is current.")
           PY
