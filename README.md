@@ -112,24 +112,24 @@ The frozen `V1.0` risk replay provides a low-cost counterfactual control using t
 <!-- ADAPTIVE_DASHBOARD_START -->
 ## Kallisto adaptive learning dashboard
 
-> Simulation only. Headline P/L and equity are net of modeled Moomoo Australia US-stock transaction fees. Gross simulator metrics are retained separately for research comparison.
+> Simulation only. Headline P/L and equity below are net of modeled Moomoo Australia US-stock transaction fees. Adaptive-learning metrics remain separately identified when they are based on the gross simulator series.
 
 | Metric | Current value |
 |---|---:|
-| Active strategy version | **V1.1** (historical results through V1.0 session 9) |
-| Completed sessions | 9 |
-| Completed trades | 72 |
-| **Kallisto net equity after modeled Moomoo AU fees** | **$794.28** |
-| **Kallisto net cumulative return** | **-20.57%** |
-| Simulator gross equity before fees | $1,006.92 |
-| Simulator gross cumulative return | 0.69% |
-| Gross trading P/L | $6.92 |
-| Modeled Moomoo AU transaction fees | **$212.64** |
-| Frozen V1.0 risk-replay equity (gross research control) | $1,007.76 |
-| Frozen V1.0 risk-replay return (gross research control) | 0.78% |
-| Gross simulator vs frozen V1.0 risk replay | -0.08% |
-| S&P 500 return from experiment base | -2.24% |
-| Nasdaq-100 return from experiment base | -4.83% |
+| Strategy version | **V1.1** |
+| Completed sessions | 11 |
+| Completed trades | 88 |
+| **Kallisto net equity after modeled Moomoo AU fees** | **$757.44** |
+| **Kallisto net cumulative return** | **-24.26%** |
+| Simulator gross equity before fees | $1,002.45 |
+| Simulator gross cumulative return | 0.24% |
+| Gross trading P/L | $2.45 |
+| Modeled Moomoo AU transaction fees | **$245.01** |
+| Frozen V1.0 risk-replay equity | $781.79 |
+| Frozen V1.0 risk-replay return | -21.82% |
+| Gross simulator vs frozen V1.0 risk replay | 28.22% |
+| S&P 500 return from experiment base | -0.92% |
+| Nasdaq-100 return from experiment base | -2.55% |
 
 ### Fee treatment
 
@@ -139,11 +139,11 @@ The frozen `V1.0` risk replay provides a low-cost counterfactual control using t
 - SEC fee: sells only, $0.0000206 × transaction amount, minimum $0.01/trade.
 - FINRA TAF: $0/share under the current published Moomoo AU live fee schedule.
 - CAT fee: NMS stocks $0.000003/share.
-- Security-specific ADR custody and stock-borrow fees are added only when an applicable amount is known; Kallisto does not invent an unknown fee.
+- Security-specific ADR custody and stock-borrow fees are included only when an applicable amount is supplied; Kallisto does not invent unknown fees.
 
-### Beating-the-market graph
+### Beating-the-market and frozen-V1 graph
 
-![Kallisto fee-adjusted equity vs market](docs/results/scalping_equity_comparison.png)
+![Kallisto vs frozen V1 risk replay, S&P 500 and Nasdaq-100](docs/results/scalping_equity_comparison.png)
 
 ### Gross adaptive-learning research graphs
 
@@ -159,7 +159,7 @@ The frozen `V1.0` risk replay provides a low-cost counterfactual control using t
 - Evidence gate: at least 20 completed trades plus evaluator confidence of 0.60 or higher.
 - Hard risk limits remain bounded in deterministic code; the evaluator cannot remove them.
 - Every accepted change creates a new version (V1.1, V1.2, ...) and is recorded in `strategy_versions.csv`.
-- Adaptive-learning metrics currently retain the original gross simulator series so the historical experiment is not silently rewritten; fee-adjusted headline P/L is reported separately and prominently.
+- The frozen V1.0 replay and adaptive-learning diagnostic series remain gross research controls so the historical experiment is not silently rewritten. They are not the headline P/L report.
 
 <!-- ADAPTIVE_DASHBOARD_END -->
 
@@ -242,10 +242,10 @@ Every paid trading-decision call and weekly evaluator call records token usage a
 <!-- API_COST_SUMMARY_START -->
 | Cost period | API cost (USD) | API calls | Input tokens | Output tokens |
 |---|---:|---:|---:|---:|
-| Average daily | $0.0329 | 19.9 | 137,895 | 4,551 |
-| Average weekly | $0.1481 | 89.5 | 620,526 | 20,478 |
-| Average monthly | $0.2961 | 179.0 | 1,241,053 | 40,957 |
-| **Total actual** | **$0.2961** | **179** | **1,241,053** | **40,957** |
+| Average daily | $0.0339 | 20.0 | 140,476 | 4,931 |
+| Average weekly | $0.1243 | 73.3 | 515,078 | 18,081 |
+| Average monthly | $0.3729 | 220.0 | 1,545,235 | 54,242 |
+| **Total actual** | **$0.3729** | **220** | **1,545,235** | **54,242** |
 <!-- API_COST_SUMMARY_END -->
 
 OpenAI billing remains the source of truth for actual API charges.
