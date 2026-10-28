@@ -33,6 +33,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Sync checkout to latest main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git reset --hard origin/main
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -178,10 +185,6 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          # A scheduled run may begin from an older checkout if another commit lands
-          # while it is running. Rebase before committing so the refresh can push.
-          git pull --rebase origin main
 
           git add README.md docs/results user_side/runs/scalping_v1
 
