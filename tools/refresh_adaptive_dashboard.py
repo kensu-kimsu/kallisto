@@ -9,14 +9,17 @@ from __future__ import annotations
 import csv
 import json
 import os
+import sys
 from datetime import datetime
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from azure.storage.blob import BlobServiceClient
 
 from user_side.personal_experiment.scalping_fees import fee_adjusted_trade
-
-ROOT = Path(__file__).resolve().parents[1]
 README = ROOT / "README.md"
 RUN_ROOT = ROOT / "user_side" / "runs" / "scalping_v1"
 RESULTS_ROOT = ROOT / "docs" / "results"
