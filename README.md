@@ -57,6 +57,16 @@ The **2% daily-loss breaker**, **10% portfolio drawdown pause**, no-leverage rul
 
 The purpose is not simply to take larger risks. It is to **trade less often and require a materially larger expected payoff after fees**. Very low-priced microcaps may now be rejected entirely when per-share settlement costs make the trade uneconomic.
 
+## Kallisto V1.2 forward-only fee-first redesign (effective November 2, 2026)
+
+The five V1.1 sessions from October 26–30 produced **0/5 days at +1% net**, **-$116.75 net P/L**, **-3.12% average net daily return**, **6.4 trades/day**, and **410.9% modeled fees relative to positive gross trade profits**.
+
+V1.2 remains **simulation-only** and prioritizes selectivity: **2 distinct Titan entries maximum per day**, **1 simultaneous position**, **no microcaps**, confidence **>=0.72**, Titan target **>=2%**, fee gate **3x modeled fees**, net target at least **0.5% of fee-adjusted equity** and **1.25x modeled stop risk**. Position sizing uses fee-adjusted equity: risk per trade **0.5%**, maximum open risk **1%**, gross exposure **50%**, position cap **45%**, cash reserve **30%**, maximum hold **60 minutes**.
+
+New entries stop at **+1% realized net daily P/L**, **-1.5% fee-adjusted daily loss**, or **10% V1.2-local fee-adjusted drawdown**. Existing gross breakers and same-day flat remain. This is a stopping rule, **not a guaranteed daily return**. Historical V1.1 results are unchanged. Azure persisted V1.1 configuration migrates once on or after November 2, after the five-session evidence gate.
+
+See [five-session review and V1.2 rationale](docs/research/kallisto_v1_1_five_session_review_2026-10-30.md).
+
 ## Adaptive self-learning loop
 
 Kallisto has a bounded self-evaluation layer. It does **not** retrain GPT weights. Instead, it learns by measuring its completed trades and market-relative performance, then allowing the evaluator to update a small allow-list of strategy parameters and prompt guidance within hard-coded safety ranges.

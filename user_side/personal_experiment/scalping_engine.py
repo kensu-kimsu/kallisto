@@ -46,8 +46,20 @@ def stop_pct(universe: str, atr_pct: float) -> float:
     return min(max(float(atr_pct or 0), 0.003), 0.009)
 
 
-def open_simulated_trade(*, state: dict, proposal: dict, candidate: dict, now_et: datetime, current_equity: float, config: dict | None = None) -> dict | None:
+def open_simulated_trade(*, state: dict, proposal: dict, candidate: dict, now_et: datetime, current_equity: float, config: dict | None = None, risk_equity: float | None = None) -> dict | None:
     ticker = proposal["ticker"]
+    v12 = (config or {}).get("version") == "V1.2"
+    if v12:
+        if state.get("paused") or state.get("v12_target_hit_session") == str(now_et.date()):
+            return None
+        if candidate.get("universe") == "microcap" and not bool(_cfg(config, "allow_microcap_entries", False)):
+            return None
+        if int(state.get("v12_entries_today", 0)) >= int(_cfg(config, "max_trades_per_day", 2)):
+            return None
+        if ticker in state.get("v12_tickers_traded_today", []):
+            return None
+        if float(proposal.get("confidence", 0)) < float(_cfg(config, "min_confidence", 0.72)):
+            return None
     if ticker in state["positions"]:
         return None
     if len(state.get("positions", {})) >= int(_cfg(config, "max_open_positions", MAX_OPEN_POSITIONS)):
@@ -85,17 +97,20 @@ def open_simulated_trade(*, state: dict, proposal: dict, candidate: dict, now_et
 
     gross = sum(int(pos["shares"]) * float(pos["entry_price"]) for pos in state["positions"].values())
     open_risk = sum(int(pos["shares"]) * abs(float(pos["entry_price"]) - float(pos["stop_price"])) for pos in state["positions"].values())
+    sizing_equity = min(current_equity, float(risk_equity)) if v12 and risk_equity is not None else current_equity
+    if sizing_equity <= 0:
+        return None
     risk_per_trade = float(_cfg(config, "risk_per_trade_pct", RISK_PER_TRADE_PCT))
     max_open_risk = float(_cfg(config, "max_open_risk_pct", MAX_OPEN_RISK_PCT))
     max_gross = float(_cfg(config, "max_gross_exposure_pct", MAX_GROSS_EXPOSURE_PCT))
     max_position = float(_cfg(config, "max_position_pct", MAX_POSITION_PCT))
     min_cash_reserve = float(_cfg(config, "min_cash_reserve_pct", MIN_CASH_RESERVE_PCT))
 
-    shares_by_trade_risk = int((current_equity * risk_per_trade) / per_share_risk)
-    shares_by_open_risk = int(max(0.0, current_equity * max_open_risk - open_risk) / per_share_risk)
-    gross_capacity = max(0.0, current_equity * max_gross - gross)
-    cash_capacity = max(0.0, float(state["cash"]) - current_equity * min_cash_reserve)
-    notional_capacity = min(current_equity * max_position, gross_capacity, cash_capacity)
+    shares_by_trade_risk = int((sizing_equity * risk_per_trade) / per_share_risk)
+    shares_by_open_risk = int(max(0.0, sizing_equity * max_open_risk - open_risk) / per_share_risk)
+    gross_capacity = max(0.0, sizing_equity * max_gross - gross)
+    cash_capacity = max(0.0, float(state["cash"]) - sizing_equity * min_cash_reserve)
+    notional_capacity = min(sizing_equity * max_position, gross_capacity, cash_capacity)
     shares_by_notional = int(notional_capacity / entry)
     shares = min(shares_by_trade_risk, shares_by_open_risk, shares_by_notional)
     if shares < 1:
@@ -116,7 +131,9 @@ def open_simulated_trade(*, state: dict, proposal: dict, candidate: dict, now_et
     min_net_profit_pct = float(_cfg(config, "fee_gate_min_net_profit_pct", FEE_GATE_MIN_NET_PROFIT_PCT))
     if expected_gross_profit < estimated_fees * fee_multiple:
         return None
-    if expected_net_profit < current_equity * min_net_profit_pct:
+    if expected_net_profit < sizing_equity * min_net_profit_pct:
+        return None
+    if v12 and expected_net_profit < shares * per_share_risk * float(_cfg(config, "fee_gate_min_net_to_risk", 1.25)):
         return None
 
     reserved_capital = shares * entry
@@ -132,6 +149,9 @@ def open_simulated_trade(*, state: dict, proposal: dict, candidate: dict, now_et
         "expected_gross_profit_at_target": round(expected_gross_profit, 6),
         "expected_net_profit_at_target": round(expected_net_profit, 6),
     }
+    if v12:
+        state["v12_entries_today"] = int(state.get("v12_entries_today", 0)) + 1
+        state["v12_tickers_traded_today"] = sorted(set(state.get("v12_tickers_traded_today", [])) | {ticker})
     return state["positions"][ticker]
 
 

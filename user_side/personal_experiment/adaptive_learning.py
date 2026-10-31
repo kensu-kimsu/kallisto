@@ -12,6 +12,7 @@ import math
 import os
 from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from openai import OpenAI
 
@@ -47,6 +48,26 @@ DEFAULT_CONFIG = {
     "learning_notes": "Use the original Kallisto V1 setup priorities without adaptive preference changes.",
     "last_evaluation_session_count": 0,
     "last_change_session_count": 0,
+}
+
+V12_EFFECTIVE_DATE = "2026-11-02"
+V12_PROFILE = {
+    "version": "V1.2", "min_confidence": 0.72,
+    "risk_per_trade_pct": 0.005, "max_open_risk_pct": 0.01,
+    "max_gross_exposure_pct": 0.50, "max_position_pct": 0.45,
+    "min_cash_reserve_pct": 0.30, "reward_to_risk_floor": 2.0,
+    "max_open_positions": 1, "max_hold_minutes": 60,
+    "microcap_min_target_pct": 0.035, "titan_min_target_pct": 0.020,
+    "fee_gate_min_gross_to_fees": 3.0, "fee_gate_min_net_profit_pct": 0.005,
+    "fee_gate_min_net_to_risk": 1.25, "max_trades_per_day": 2,
+    "allow_microcap_entries": False, "daily_net_target_pct": 0.01,
+    "daily_net_loss_limit_pct": 0.015, "v12_net_drawdown_pause_pct": 0.10,
+    "learning_notes": (
+        "V1.2 simulation only: zero trades are acceptable; at most two distinct "
+        "Titan entries daily; net target profit must clear 3x fees, 0.5% net "
+        "equity, and 1.25x stop risk; stop new entries at +1% realized net "
+        "or tighter net loss/drawdown breakers."
+    ),
 }
 
 BOUNDS = {
@@ -130,6 +151,18 @@ def load_config() -> dict:
             len(trades),
             datetime.now().date().isoformat(),
         )
+    # Azure Blob Storage may still contain V1.1 after source is deployed.
+    # Upgrade once on the next NYSE session, never backfill or alter V1.1 rows.
+    if cfg.get("version") == "V1.1" and datetime.now(ZoneInfo("America/New_York")).date().isoformat() >= V12_EFFECTIVE_DATE:
+        v11_days = {r.get("date") for r in _valid_daily_rows() if "2026-10-26" <= str(r.get("date") or "") < V12_EFFECTIVE_DATE}
+        if len(v11_days) >= 5:
+            daily = _valid_daily_rows()
+            trades = _valid_trade_rows()
+            cfg.update(V12_PROFILE)
+            cfg["last_change_session_count"] = len(daily)
+            save_config(cfg)
+            if not any(r.get("version") == "V1.2" for r in _read_csv(VERSION_LOG)):
+                _append_version(cfg, "Manual V1.2 redesign after five complete V1.1 sessions; fee-adjusted target and loss protection", len(daily), len(trades), V12_EFFECTIVE_DATE)
     return cfg
 
 
@@ -202,6 +235,13 @@ def compute_metrics(baseline_daily_path: Path | None = None) -> dict:
             running_equity += _safe_float(trade.get("net_pnl_usd"))
         net_by_date[day] = running_equity
 
+    net_daily_returns = []
+    for row in last5:
+        day = str(row.get("date") or "")
+        idx = next((i for i, item in enumerate(daily) if item.get("date") == day), 0)
+        prior = net_by_date.get(str(daily[idx - 1].get("date"))) if idx else 1000.0
+        end = net_by_date.get(day, prior)
+        net_daily_returns.append(100 * (end / prior - 1) if prior and prior > 0 else -100.0)
     if last5:
         first_day = str(last5[0].get("date") or "")
         first_index = next((i for i, r in enumerate(daily) if str(r.get("date") or "") == first_day), 0)
@@ -239,6 +279,17 @@ def compute_metrics(baseline_daily_path: Path | None = None) -> dict:
         "rolling_5_profit_factor": _profit_factor(last5_trades),
         "max_drawdown_pct": _max_drawdown(equities), "adaptive_equity": adaptive_equity,
         "baseline_equity": baseline_equity, "adaptive_vs_baseline_pct": adaptive_vs_baseline,
+        "rolling_5_avg_net_daily_return_pct": sum(net_daily_returns) / len(net_daily_returns) if net_daily_returns else 0.0,
+        "rolling_5_median_net_daily_return_pct": sorted(net_daily_returns)[len(net_daily_returns) // 2] if net_daily_returns else 0.0,
+        "rolling_5_days_at_plus_1_pct": sum(ret >= 1.0 for ret in net_daily_returns),
+        "rolling_5_plus_1_hit_rate_pct": 100 * sum(ret >= 1.0 for ret in net_daily_returns) / len(net_daily_returns) if net_daily_returns else 0.0,
+        "rolling_5_max_net_daily_loss_pct": min(net_daily_returns) if net_daily_returns else 0.0,
+        "rolling_5_avg_trades_per_day": len(last5_trades) / len(last5) if last5 else 0.0,
+        "rolling_5_fees_pct_positive_gross_pnl": (
+            100 * sum(_safe_float(t.get("fees_usd")) for t in last5_trades) /
+            sum(max(0.0, _safe_float(t.get("pnl_usd"))) for t in last5_trades)
+            if sum(max(0.0, _safe_float(t.get("pnl_usd"))) for t in last5_trades) > 0 else None
+        ),
     }
 
 def record_improvement_snapshot(day: str, baseline_daily_path: Path | None = None) -> dict:
@@ -297,19 +348,50 @@ def _bounded_config(current: dict, proposal: dict) -> dict:
                 bounded[key] = _bounded_value(key, value)
             except (TypeError, ValueError, OverflowError):
                 continue
+    # Automated V1.2 evaluation can tighten but cannot loosen risk gates.
+    if current.get("version") == "V1.2":
+        strict_min = {"min_confidence", "min_cash_reserve_pct", "reward_to_risk_floor", "microcap_min_target_pct", "titan_min_target_pct"}
+        strict_max = {"risk_per_trade_pct", "max_open_risk_pct", "max_gross_exposure_pct", "max_position_pct", "max_open_positions", "max_hold_minutes"}
+        for key in strict_min:
+            bounded[key] = max(current[key], bounded[key])
+        for key in strict_max:
+            bounded[key] = min(current[key], bounded[key])
     notes = proposal.get("learning_notes") if isinstance(proposal, dict) else None
     if notes is not None:
         bounded["learning_notes"] = str(notes).strip()[:500]
     return bounded
 
 
+def _net_daily_summary(daily: list[dict], trades: list[dict]) -> list[dict]:
+    by_day: dict[str, list[dict]] = {}
+    for trade in trades:
+        by_day.setdefault(str(trade.get("session_date") or ""), []).append(trade)
+    equity = 1000.0
+    results = []
+    for row in daily:
+        day = str(row.get("date") or "")
+        entries = by_day.get(day, [])
+        start = equity
+        net_pnl = sum(_safe_float(t.get("net_pnl_usd")) for t in entries)
+        fees = sum(_safe_float(t.get("fees_usd")) for t in entries)
+        equity += net_pnl
+        results.append({
+            "date": day, "net_starting_equity": round(start, 4),
+            "net_ending_equity": round(equity, 4),
+            "net_daily_return_pct": round(100 * net_pnl / start, 4) if start > 0 else -100.0,
+            "net_pnl_usd": round(net_pnl, 4), "modeled_fees_usd": round(fees, 4),
+            "trades": len(entries), "reached_plus_1_net": net_pnl >= 0.01 * start,
+        })
+    return results
+
+
 def _evaluate_with_llm(metrics: dict, recent_daily: list[dict], recent_trades: list[dict], config: dict, now_et: datetime) -> dict:
     prompt = f"""
 You are the bounded strategy evaluator for Kallisto, a SIMULATION-ONLY intraday scalping research experiment.
-Evaluate evidence; do not promise profits. Avoid changes when evidence is weak.
+Evaluate evidence; do not promise profits. Avoid changes when evidence is weak. Seek more +1% net sessions without forced trades or weaker capital protection.
 Current configuration: {json.dumps(config, sort_keys=True)}
 Measured metrics: {json.dumps(metrics, sort_keys=True)}
-Recent daily results: {json.dumps(recent_daily[-10:], default=str)}
+Recent daily fee-adjusted results: {json.dumps(_net_daily_summary(recent_daily, recent_trades)[-10:], default=str)}
 Recent completed trades: {json.dumps(recent_trades[-40:], default=str)}
 Allowed tunable keys and absolute bounds: {json.dumps(BOUNDS, sort_keys=True)}
 Return JSON only with: confidence (0..1), diagnosis (short string), learning_notes (<=500 chars), and proposed_changes (object containing only allowed keys). Use an empty proposed_changes object when evidence does not justify a change.

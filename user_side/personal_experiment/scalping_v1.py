@@ -17,6 +17,7 @@ import pandas_market_calendars as mcal
 from user_side.personal_experiment.adaptive_learning import ensure_learning_state, load_config, maybe_weekly_evaluate, record_improvement_snapshot
 from user_side.personal_experiment.baseline_replay import BASELINE_REPLAY_LOG, refresh_baseline_replay
 from user_side.personal_experiment.scalping_engine import DAILY_LOSS_LIMIT_PCT, close_simulated_trade, evaluate_bar, mark_to_market, open_simulated_trade
+from user_side.personal_experiment.scalping_net_risk import fee_adjusted_snapshot, v12_entry_allowed
 from user_side.personal_experiment.scalping_market_data import latest_price, scan_premarket_with_diagnostics, session_bars, technical_snapshot
 from user_side.personal_experiment.scalping_reporting import create_daily_journal, refresh_charts
 from user_side.personal_experiment.scalping_state import DAILY_FIELDS, DAILY_LOG, DECISION_LOG, TRADE_LOG, append_decision, append_row, ensure_state, load_state, save_state
@@ -60,6 +61,9 @@ def start_session(state: dict, now_et: datetime) -> None:
     state["premarket_candidates"] = []
     state["premarket_scan_diagnostics"] = {}
     state["paused"] = False
+    state["v12_entries_today"] = 0
+    state["v12_tickers_traded_today"] = []
+    state["v12_target_hit_session"] = None
 
 
 def initialise_benchmark_base(state: dict, day) -> None:
@@ -266,6 +270,12 @@ def main() -> None:
     equity = mark_to_market(state, current_prices(state, now_et.date()))
     if equity <= float(state["session_start_equity"]) * (1 - DAILY_LOSS_LIMIT_PCT):
         state["paused"] = True
+    if config.get("version") == "V1.2":
+        snapshot = fee_adjusted_snapshot(state, equity, current_prices(state, now_et.date()))
+        if not v12_entry_allowed(state, snapshot, config):
+            state["last_cycle_et"] = now_et.isoformat(); save_state(state)
+            print("V1.2 monitoring only: net target, daily loss, drawdown or trade cap.")
+            return
     if now_et.time() < ENTRY_START:
         state["last_cycle_et"] = now_et.isoformat(); save_state(state)
         print("Monitoring only: waiting for first 10 minutes of price discovery.")
@@ -310,8 +320,15 @@ def main() -> None:
     proposals = validate_proposals(response, set(candidate_map), config=config, candidate_map=candidate_map)
     opened = []
     for proposal in proposals:
-        equity = mark_to_market(state, current_prices(state, now_et.date()))
-        position = open_simulated_trade(state=state, proposal=proposal, candidate=candidate_map[proposal["ticker"]], now_et=now_et, current_equity=equity, config=config)
+        prices = current_prices(state, now_et.date())
+        equity = mark_to_market(state, prices)
+        risk_equity = None
+        if config.get("version") == "V1.2":
+            snapshot = fee_adjusted_snapshot(state, equity, prices)
+            if not v12_entry_allowed(state, snapshot, config):
+                break
+            risk_equity = snapshot["net_equity"]
+        position = open_simulated_trade(state=state, proposal=proposal, candidate=candidate_map[proposal["ticker"]], now_et=now_et, current_equity=equity, config=config, risk_equity=risk_equity)
         if position is not None:
             opened.append(position)
 
