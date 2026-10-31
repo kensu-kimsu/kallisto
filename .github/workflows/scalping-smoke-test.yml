@@ -16,6 +16,7 @@ on:
       - "user_side/personal_experiment/broker/**"
       - "tests/test_scalping_smoke.py"
       - "tests/test_adaptive_learning.py"
+      - "tests/test_v12_controls.py"
       - "tests/test_moomoo_broker_safety.py"
       - "tests/test_moomoo_rest_paper.py"
       - ".github/workflows/scalping-smoke-test.yml"
@@ -51,6 +52,7 @@ jobs:
           python -m py_compile user_side/personal_experiment/scalping_api_costs.py
           python -m py_compile user_side/personal_experiment/scalping_strategy.py
           python -m py_compile user_side/personal_experiment/scalping_engine.py
+          python -m py_compile user_side/personal_experiment/scalping_net_risk.py
           python -m py_compile user_side/personal_experiment/scalping_reporting.py
           python -m py_compile user_side/personal_experiment/scalping_v1.py
           python -m py_compile user_side/personal_experiment/scalping_session_runner.py
@@ -63,5 +65,6 @@ jobs:
         run: |
           python -m unittest discover -s tests -p "test_scalping_smoke.py" -v
           python -m unittest discover -s tests -p "test_adaptive_learning.py" -v
+          python -m unittest discover -s tests -p "test_v12_controls.py" -v
           python -m unittest discover -s tests -p "test_moomoo_broker_safety.py" -v
           python -m unittest discover -s tests -p "test_moomoo_rest_paper.py" -v
