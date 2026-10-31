@@ -117,19 +117,19 @@ The frozen `V1.0` risk replay provides a low-cost counterfactual control using t
 | Metric | Current value |
 |---|---:|
 | Strategy version | **V1.1** |
-| Completed sessions | 13 |
-| Completed trades | 101 |
-| **Kallisto net equity after modeled Moomoo AU fees** | **$714.60** |
-| **Kallisto net cumulative return** | **-28.54%** |
-| Simulator gross equity before fees | $995.02 |
-| Simulator gross cumulative return | -0.50% |
-| Gross trading P/L | $-4.98 |
-| Modeled Moomoo AU transaction fees | **$280.42** |
-| Frozen V1.0 risk-replay equity | $753.90 |
-| Frozen V1.0 risk-replay return | -24.61% |
-| Gross simulator vs frozen V1.0 risk replay | 31.98% |
-| S&P 500 return from experiment base | -1.07% |
-| Nasdaq-100 return from experiment base | -3.45% |
+| Completed sessions | 14 |
+| Completed trades | 104 |
+| **Kallisto net equity after modeled Moomoo AU fees** | **$677.53** |
+| **Kallisto net cumulative return** | **-32.25%** |
+| Simulator gross equity before fees | $977.88 |
+| Simulator gross cumulative return | -2.21% |
+| Gross trading P/L | $-22.12 |
+| Modeled Moomoo AU transaction fees | **$300.35** |
+| Frozen V1.0 risk-replay equity | $732.68 |
+| Frozen V1.0 risk-replay return | -26.73% |
+| Gross simulator vs frozen V1.0 risk replay | 33.47% |
+| S&P 500 return from experiment base | -2.82% |
+| Nasdaq-100 return from experiment base | -6.62% |
 
 ### Fee treatment
 
@@ -242,10 +242,10 @@ Every paid trading-decision call and weekly evaluator call records token usage a
 <!-- API_COST_SUMMARY_START -->
 | Cost period | API cost (USD) | API calls | Input tokens | Output tokens |
 |---|---:|---:|---:|---:|
-| Average daily | $0.0340 | 20.0 | 140,609 | 4,999 |
-| Average weekly | $0.1474 | 86.7 | 609,304 | 21,661 |
-| Average monthly | $0.4423 | 260.0 | 1,827,911 | 64,983 |
-| **Total actual** | **$0.4423** | **260** | **1,827,911** | **64,983** |
+| Average daily | $0.0336 | 19.7 | 138,450 | 4,971 |
+| Average weekly | $0.1567 | 92.0 | 646,102 | 23,197 |
+| Average monthly | $0.4700 | 276.0 | 1,938,305 | 69,591 |
+| **Total actual** | **$0.4700** | **276** | **1,938,305** | **69,591** |
 <!-- API_COST_SUMMARY_END -->
 
 OpenAI billing remains the source of truth for actual API charges.
