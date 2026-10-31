@@ -25,6 +25,16 @@ def build_prompt(state: dict, candidates: list[dict], now_et: datetime, config: 
     fee_multiple = float(config.get("fee_gate_min_gross_to_fees", 1.50))
     min_net_profit_pct = float(config.get("fee_gate_min_net_profit_pct", 0.0025))
     version = str(config.get("version", "V1.0"))
+    v12_rules = ""
+    if version == "V1.2":
+        v12_rules = (
+            "V1.2: maximum two distinct entries per day and one open position. "
+            "Microcap entries disabled. Only high-conviction liquid Titan setups. "
+            "Zero trades is preferable to marginal expected value. "
+            "Stop new entries at +1% realized fee-adjusted daily P/L, and respect "
+            "the tighter -1.5% net daily loss breaker. Net profit at target "
+            "must also exceed 1.25x modeled stop risk."
+        )
     payload = [{
         "ticker": c["ticker"], "name": c.get("name"), "universe": c["universe"],
         "selection_source": c.get("selection_source", "premarket"),
@@ -70,7 +80,7 @@ DATA-SOURCE DISCIPLINE
 
 DISCIPLINE
 - Do not trade merely because a ticker appears in the candidate list.
-- When a clear liquid setup exists, choose the best opportunity instead of excessive cash defaulting.
+- Cash is a valid choice. Never enter a marginal setup just to increase trade count.
 - Prefer one or two high-quality ideas over many mediocre ideas.
 - Avoid chasing moves far from VWAP unless momentum and relative volume remain strong.
 - Do not invent catalysts, headlines, Level 2/order-book information, hidden order flow or proprietary signals.
@@ -88,6 +98,7 @@ SIMULATION RULES
 - Transaction costs matter. Prefer fewer, higher-conviction setups with enough price movement to justify a round trip.
 - Deterministic code will reject an entry unless expected gross target profit is at least {fee_multiple:.2f}x modeled Moomoo AU round-trip fees and expected net target profit is at least {min_net_profit_pct * 100:.2f}% of current equity.
 - Do not lower target quality merely to generate more trades.
+- {v12_rules}
 
 CANDIDATES
 {json.dumps(payload, indent=2, default=str)}
