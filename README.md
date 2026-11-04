@@ -127,7 +127,7 @@ The frozen `V1.0` risk replay provides a low-cost counterfactual control using t
 | Metric | Current value |
 |---|---:|
 | Strategy version | **V1.2** |
-| Completed sessions | 15 |
+| Completed sessions | 16 |
 | Completed trades | 104 |
 | **Kallisto net equity after modeled Moomoo AU fees** | **$677.53** |
 | **Kallisto net cumulative return** | **-32.25%** |
@@ -138,8 +138,8 @@ The frozen `V1.0` risk replay provides a low-cost counterfactual control using t
 | Frozen V1.0 risk-replay equity | $732.68 |
 | Frozen V1.0 risk-replay return | -26.73% |
 | Gross simulator vs frozen V1.0 risk replay | 33.47% |
-| S&P 500 return from experiment base | -3.15% |
-| Nasdaq-100 return from experiment base | -7.89% |
+| S&P 500 return from experiment base | -2.95% |
+| Nasdaq-100 return from experiment base | -7.38% |
 
 ### Fee treatment
 
@@ -252,10 +252,10 @@ Every paid trading-decision call and weekly evaluator call records token usage a
 <!-- API_COST_SUMMARY_START -->
 | Cost period | API cost (USD) | API calls | Input tokens | Output tokens |
 |---|---:|---:|---:|---:|
-| Average daily | $0.0337 | 19.7 | 139,565 | 4,911 |
-| Average weekly | $0.1265 | 74.0 | 523,370 | 18,415 |
-| Average monthly | $0.2529 | 148.0 | 1,046,740 | 36,830 |
-| **Total actual** | **$0.5059** | **296** | **2,093,481** | **73,660** |
+| Average daily | $0.0336 | 19.7 | 139,150 | 4,906 |
+| Average weekly | $0.1346 | 78.8 | 556,601 | 19,626 |
+| Average monthly | $0.2691 | 157.5 | 1,113,202 | 39,252 |
+| **Total actual** | **$0.5383** | **315** | **2,226,405** | **78,504** |
 <!-- API_COST_SUMMARY_END -->
 
 OpenAI billing remains the source of truth for actual API charges.
