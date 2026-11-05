@@ -122,11 +122,13 @@ def force_flat(state: dict, now_et: datetime) -> list[dict]:
     return closed
 
 
-def build_candidates(state: dict, now_et: datetime) -> tuple[list[dict], dict]:
+def build_candidates(state: dict, now_et: datetime, config=None) -> tuple[list[dict], dict]:
     diagnostics = state.get("premarket_scan_diagnostics") or {}
     if not state.get("premarket_candidates"):
         leaders, diagnostics = scan_premarket_with_diagnostics(
-            now_et.date(), leaders_per_universe=PREMARKET_LEADERS_PER_UNIVERSE
+            now_et.date(), leaders_per_universe=PREMARKET_LEADERS_PER_UNIVERSE,
+            titan_only=(config or {}).get('version') == 'V1.2',
+            max_share_price=state.get('v12_scan_price_ceiling') if (config or {}).get('version') == 'V1.2' else None,
         )
         state["premarket_candidates"] = leaders
         state["premarket_scan_diagnostics"] = diagnostics
@@ -290,7 +292,10 @@ def main() -> None:
         return
 
     try:
-        candidates, diagnostics = build_candidates(state, now_et)
+        if config.get('version') == 'V1.2':
+            net_equity = fee_adjusted_snapshot(state, equity, current_prices(state, now_et.date()))['net_equity']
+            state['v12_scan_price_ceiling'] = max(0.0, min(net_equity * float(config.get('max_position_pct', 0.45)), net_equity * float(config.get('max_gross_exposure_pct', 0.50)), float(state['cash']) - net_equity * float(config.get('min_cash_reserve_pct', 0.30))) / 1.001)
+        candidates, diagnostics = build_candidates(state, now_et, config)
     except Exception as exc:
         diagnostics = {"fatal_scan_error": f"{type(exc).__name__}:{exc}"}
         log_cycle_event(now_et, "MARKET_DATA_ERROR", diagnostics=diagnostics, extra={"strategy_version": config["version"]})
