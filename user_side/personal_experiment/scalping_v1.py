@@ -127,7 +127,7 @@ def build_candidates(state: dict, now_et: datetime, config=None) -> tuple[list[d
     if not state.get("premarket_candidates"):
         leaders, diagnostics = scan_premarket_with_diagnostics(
             now_et.date(), leaders_per_universe=PREMARKET_LEADERS_PER_UNIVERSE,
-            titan_only=(config or {}).get('version') == 'V1.2',
+            titan_only=True,
             max_share_price=state.get('v12_scan_price_ceiling') if (config or {}).get('version') == 'V1.2' else None,
         )
         state["premarket_candidates"] = leaders
