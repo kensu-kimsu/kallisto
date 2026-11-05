@@ -116,31 +116,31 @@ def _static_titan_frame() -> pd.DataFrame:
     ])
 
 
-def _load_universes() -> tuple[list[tuple[str, pd.DataFrame]], list[str]]:
-    groups: list[tuple[str, pd.DataFrame]] = []
-    errors: list[str] = []
-
+def _load_universes(*, max_share_price=None, titan_only=False):
+    groups, errors = [], []
+    if not titan_only:
+        try:
+            groups.append(("microcap", get_microcap_universe(candidate_count=25)))
+        except Exception as exc:
+            errors.append(f"microcap_universe:{type(exc).__name__}:{exc}")
     try:
-        # Yahoo's screen result is already volume-sorted; 25 candidates is ample
-        # for an 8-stock shortlist and materially reduces Function execution time.
-        microcaps = get_microcap_universe(candidate_count=25)
-        groups.append(("microcap", microcaps))
-    except Exception as exc:
-        errors.append(f"microcap_universe:{type(exc).__name__}:{exc}")
-
-    try:
-        titans = get_titan_universe(top_n=20)
+        titans = get_titan_universe(top_n=60 if titan_only else 20, max_price=max_share_price)
     except Exception as exc:
         errors.append(f"titan_universe:{type(exc).__name__}:{exc}")
         titans = _static_titan_frame()
         errors.append("titan_universe:using_static_fallback")
+    if max_share_price is not None:
+        if "price" not in titans.columns:
+            titans = titans.copy()
+            titans["price"] = [None] * len(titans)
+        titans = titans.loc[titans["price"].notna() & (titans["price"] >= 5.0) & (titans["price"] <= max_share_price)].copy()
     groups.append(("titan", titans))
     return groups, errors
 
 
-def scan_premarket_with_diagnostics(day, leaders_per_universe: int = 5) -> tuple[list[dict], dict]:
+def scan_premarket_with_diagnostics(day, leaders_per_universe: int = 5, *, max_share_price=None, titan_only=False) -> tuple[list[dict], dict]:
     """Return candidate leaders plus an audit-friendly scan diagnostic payload."""
-    groups, universe_errors = _load_universes()
+    groups, universe_errors = _load_universes(max_share_price=max_share_price, titan_only=titan_only)
     leaders: list[dict] = []
     diagnostics = {"day": str(day), "universe_errors": universe_errors, "groups": {}, "total_leaders": 0}
 
