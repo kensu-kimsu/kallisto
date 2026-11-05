@@ -11,7 +11,7 @@ NASDAQ_EXCHANGES = [
 ]
 
 
-def get_titan_universe(top_n: int = 20):
+def get_titan_universe(top_n: int = 20, max_price: float | None = None, min_market_cap: float = 2_000_000_000):
 
     query = EquityQuery(
         "and",
@@ -65,6 +65,9 @@ def get_titan_universe(top_n: int = 20):
         if not company_name or not market_cap or not price:
             continue
 
+        if max_price is not None and (float(price) > max_price or float(price) < 5.0 or float(market_cap) < min_market_cap):
+            continue
+
         # Prevent multiple share classes from occupying multiple slots.
         # Example: GOOG + GOOGL
         if company_name in seen_companies:
@@ -92,7 +95,7 @@ def get_titan_universe(top_n: int = 20):
         )
 
     df = df.sort_values(
-        "market_cap",
+        "volume" if max_price is not None else "market_cap",
         ascending=False
     ).reset_index(drop=True)
 
