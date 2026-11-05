@@ -304,6 +304,32 @@ def main() -> None:
         print(f"No usable candidates. Diagnostics: {diagnostics}")
         return
 
+    # V1.2: exclude candidates that cannot fit one whole share within risk limits.
+    # This avoids wasting LLM proposals on stocks the execution engine must reject.
+    excluded_candidates = []
+    if config.get("version") == "V1.2":
+        net_equity = fee_adjusted_snapshot(state, equity, current_prices(state, now_et.date()))["net_equity"]
+        budget = min(
+            net_equity * float(config.get("max_position_pct", 0.45)),
+            net_equity * float(config.get("max_gross_exposure_pct", 0.50)),
+            max(0.0, float(state["cash"]) - net_equity * float(config.get("min_cash_reserve_pct", 0.30))),
+        )
+        executable = []
+        for candidate in candidates:
+            price = float((candidate.get("technical") or {}).get("price") or 0)
+            if candidate.get("universe") == "microcap":
+                excluded_candidates.append({"ticker": candidate["ticker"], "reason": "MICROCAP_DISABLED"})
+            elif price <= 0 or price > budget:
+                excluded_candidates.append({"ticker": candidate["ticker"], "reason": "WHOLE_SHARE_UNAFFORDABLE", "price": price, "budget": round(budget, 2)})
+            else:
+                executable.append(candidate)
+        candidates = executable
+        if not candidates:
+            log_cycle_event(now_et, "NO_EXECUTABLE_CANDIDATES", diagnostics=diagnostics, extra={"strategy_version": config["version"], "excluded_candidates": excluded_candidates})
+            state["last_decision_et"] = now_et.isoformat()
+            state["last_cycle_et"] = now_et.isoformat()
+            save_state(state)
+            return
     candidate_map = {candidate["ticker"]: candidate for candidate in candidates}
     prompt = build_prompt(state, candidates, now_et, config=config, track_name="Kallisto Adaptive")
     try:
@@ -319,6 +345,7 @@ def main() -> None:
 
     proposals = validate_proposals(response, set(candidate_map), config=config, candidate_map=candidate_map)
     opened = []
+    rejected_proposals = []
     for proposal in proposals:
         prices = current_prices(state, now_et.date())
         equity = mark_to_market(state, prices)
@@ -331,12 +358,15 @@ def main() -> None:
         position = open_simulated_trade(state=state, proposal=proposal, candidate=candidate_map[proposal["ticker"]], now_et=now_et, current_equity=equity, config=config, risk_equity=risk_equity)
         if position is not None:
             opened.append(position)
+        else:
+            rejected_proposals.append({"ticker": proposal["ticker"], "reason": "DETERMINISTIC_ENTRY_GATE_REJECTED"})
 
     append_decision({
         "timestamp_et": now_et.isoformat(), "model": MODEL, "status": "LLM_DECISION", "llm_called": True,
         "strategy_version": config["version"], "candidate_count": len(candidates), "market_data_diagnostics": diagnostics,
         "tokens": tokens, "model_output": response, "accepted_proposals": proposals,
         "opened_positions": opened, "closed_positions": closed,
+        "excluded_candidates": excluded_candidates, "rejected_proposals": rejected_proposals,
     })
     state["last_decision_et"] = now_et.isoformat(); state["last_cycle_et"] = now_et.isoformat(); save_state(state)
     print(f"Kallisto | candidates: {len(candidates)} | proposals: {len(proposals)} | opened: {len(opened)} | closed: {len(closed)} | version: {config['version']} | API cost: ${tokens['estimated_cost_usd']:.6f}")
