@@ -70,3 +70,24 @@ def sync_up() -> None:
             if path.is_file():
                 rel = path.relative_to(OUTPUT_ROOT).as_posix()
                 container.get_blob_client(f"reports/{rel}").upload_blob(path.read_bytes(), overwrite=True)
+
+# V1.3 has its own blob prefix and never overwrites V1.2 files.
+V13_ROOT = Path(os.environ.get("SCALPING_V13_RUN_ROOT", "/tmp/scalping_v13"))
+V13_FILES = ("state.json", "decisions.jsonl", "trades.jsonl", "sessions.jsonl")
+
+def sync_v13_down() -> None:
+    V13_ROOT.mkdir(parents=True, exist_ok=True)
+    container = ensure_container()
+    for name in V13_FILES:
+        try:
+            V13_ROOT.joinpath(name).write_bytes(
+                container.get_blob_client("v13/" + name).download_blob().readall())
+        except ResourceNotFoundError:
+            pass
+
+def sync_v13_up() -> None:
+    container = ensure_container()
+    for name in V13_FILES:
+        path = V13_ROOT / name
+        if path.exists():
+            container.get_blob_client("v13/" + name).upload_blob(path.read_bytes(), overwrite=True)
