@@ -59,7 +59,7 @@ def log(path, row):
 
 def main():
     now = datetime.now(NY)
-    if not is_nyse_session(now.date()) or not ENTRY_START <= now.time() <= FORCE_FLAT_TIME:
+    if not is_nyse_session(now.date()) or not ENTRY_START <= now.time() <= __import__("datetime").time(16, 10):
         return
     state = load()
     day = str(now.date())
@@ -101,6 +101,11 @@ def main():
             log(TRADES, {"date": day, "ticker": ticker, "gross_pnl": pnl,
                          "fees": fees, "net_pnl": pnl - fees, "reason": "FORCED_EOD_FLAT"})
             del state["positions"][ticker]
+    if now.time() >= FORCE_FLAT_TIME and not state["positions"] and state.get("session_logged") != day:
+        log(ROOT / "sessions.jsonl", {"date": day, "version": "V1.3",
+            "ending_equity": state["cash"], "starting_equity": state["session_start_equity"],
+            "trades": state["v12_entries_today"], "completed": True})
+        state["session_logged"] = day
     if now.time() >= NEW_ENTRY_CUTOFF or state["positions"] or state["paused"]:
         save(state)
         return
