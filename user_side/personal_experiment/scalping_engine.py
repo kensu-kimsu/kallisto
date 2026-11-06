@@ -48,7 +48,7 @@ def stop_pct(universe: str, atr_pct: float) -> float:
 
 def open_simulated_trade(*, state: dict, proposal: dict, candidate: dict, now_et: datetime, current_equity: float, config: dict | None = None, risk_equity: float | None = None) -> dict | None:
     ticker = proposal["ticker"]
-    v12 = (config or {}).get("version") == "V1.2"
+    v12 = (config or {}).get("version") in {"V1.2", "V1.3"}
     if v12:
         if state.get("paused") or state.get("v12_target_hit_session") == str(now_et.date()):
             return None
