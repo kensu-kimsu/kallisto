@@ -58,7 +58,7 @@ def log(path, row):
 
 def main():
     now = datetime.now(NY)
-    if not is_nyse_session(now.date()) or not ENTRY_START <= now.time() < FORCE_FLAT_TIME:
+    if not is_nyse_session(now.date()) or not ENTRY_START <= now.time() <= FORCE_FLAT_TIME:
         return
     state = load()
     day = str(now.date())
@@ -87,6 +87,19 @@ def main():
                              "fees": fees, "net_pnl": gross_pnl - fees, "reason": reason})
                 del state["positions"][ticker]
                 break
+    if now.time() >= FORCE_FLAT_TIME and state["positions"]:
+        for ticker, pos in list(state["positions"].items()):
+            price = latest_price(ticker, now.date())
+            if price is None:
+                raise RuntimeError("Cannot force-flat without current price: " + ticker)
+            shares = int(pos["shares"])
+            pnl = shares * (price - pos["entry_price"]) * (1 if pos["side"] == "LONG" else -1)
+            fees = round_trip_fees(side=pos["side"], shares=shares,
+                entry_price=pos["entry_price"], exit_price=price)["total_fee"]
+            state["cash"] += pos["reserved_capital"] + pnl - fees
+            log(TRADES, {"date": day, "ticker": ticker, "gross_pnl": pnl,
+                         "fees": fees, "net_pnl": pnl - fees, "reason": "FORCED_EOD_FLAT"})
+            del state["positions"][ticker]
     if now.time() >= NEW_ENTRY_CUTOFF or state["positions"] or state["paused"]:
         save(state)
         return
@@ -94,6 +107,9 @@ def main():
         save(state)
         return
     equity = mark_to_market(state, {})
+    if state["v12_entries_today"] >= CONFIG["max_trades_per_day"]:
+        save(state)
+        return
     if equity <= state["session_start_equity"] * 0.985 or equity <= state["high_water_mark"] * 0.90:
         state["paused"] = True
         save(state)
@@ -123,6 +139,7 @@ def main():
         position = open_simulated_trade(state=state, proposal=proposal, candidate=mapping[proposal["ticker"]],
             now_et=now, current_equity=equity, config=CONFIG, risk_equity=equity)
         if position:
+            state["v12_entries_today"] += 1
             opened.append(proposal["ticker"])
     log(DECISIONS, {"date": day, "time": now.isoformat(), "candidates": len(candidates),
                     "proposals": proposals, "opened": opened, "model_output": response,
