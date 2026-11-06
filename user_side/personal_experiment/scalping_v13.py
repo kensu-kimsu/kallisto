@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -20,7 +21,7 @@ from user_side.personal_experiment.scalping_engine import open_simulated_trade, 
 from user_side.personal_experiment.scalping_market_data import session_bars, latest_price
 from user_side.personal_experiment.scalping_fees import round_trip_fees
 
-ROOT = Path(__file__).resolve().parents[2] / "user_side" / "runs" / "scalping_v13"
+ROOT = Path(os.environ.get("SCALPING_V13_RUN_ROOT", str(Path(__file__).resolve().parents[2] / "user_side" / "runs" / "scalping_v13")))
 STATE_FILE = ROOT / "state.json"
 DECISIONS = ROOT / "decisions.jsonl"
 TRADES = ROOT / "trades.jsonl"
