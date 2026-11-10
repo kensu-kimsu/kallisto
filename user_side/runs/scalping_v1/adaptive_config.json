@@ -6,7 +6,7 @@
   "fee_gate_min_net_profit_pct": 0.005,
   "fee_gate_min_net_to_risk": 1.25,
   "last_change_session_count": 14,
-  "last_evaluation_session_count": 15,
+  "last_evaluation_session_count": 20,
   "learning_notes": "V1.2 simulation only: zero trades are acceptable; at most two distinct Titan entries daily; net target profit must clear 3x fees, 0.5% net equity, and 1.25x stop risk; stop new entries at +1% realized net or tighter net loss/drawdown breakers.",
   "max_gross_exposure_pct": 0.5,
   "max_hold_minutes": 60,
