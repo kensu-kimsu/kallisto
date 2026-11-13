@@ -1,11 +1,11 @@
 {
-  "azure_last_cycle_et": "2026-11-11T16:05:01.368730-05:00",
-  "azure_last_decision_et": "2026-11-11T15:25:01.671999-05:00",
-  "azure_portfolio_session_date": "2026-11-11",
-  "checked_at_et": "2026-11-12T02:11:54.954764-05:00",
-  "daily_performance_latest_date": "2026-11-11",
+  "azure_last_cycle_et": "2026-11-12T16:05:01.914238-05:00",
+  "azure_last_decision_et": "2026-11-12T15:10:01.727158-05:00",
+  "azure_portfolio_session_date": "2026-11-12",
+  "checked_at_et": "2026-11-12T20:50:44.047758-05:00",
+  "daily_performance_latest_date": "2026-11-12",
   "detail": "",
-  "expected_latest_completed_nyse_session": "2026-11-11",
+  "expected_latest_completed_nyse_session": "2026-11-12",
   "function_app_state": "UNKNOWN",
   "status": "FRESH"
 }
