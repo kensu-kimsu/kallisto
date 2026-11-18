@@ -268,6 +268,22 @@ def _v13_report():
                    gross_pnl=gross, fees=fees, net_pnl=end-start, trades=len(trades),
                    wins=sum(float(t["net_pnl"])>0 for t in trades), session_end_drawdown_pct=dd,
                    no_trade_dates=sorted(dates-{t["date"] for t in trades}))
+    from collections import Counter
+    from datetime import timedelta, time
+    from zoneinfo import ZoneInfo
+    import pandas_market_calendars as mcal
+    now = datetime.now(ZoneInfo("America/New_York"))
+    schedule = mcal.get_calendar("NYSE").schedule(start_date=now.date()-timedelta(days=15), end_date=now.date())
+    expected = [str(d.date()) for d, row in schedule.iterrows()
+                if row["market_close"].to_pydatetime() + timedelta(minutes=20) <= now]
+    summary["expected_latest_session"] = expected[-1] if expected else None
+    summary["freshness"] = "FRESH" if expected and expected[-1] == summary["last_date"] else "STALE"
+    summary["sampled_intraday_risk"] = [r["sampled_risk"] for r in sessions if r.get("sampled_risk")]
+    decisions = records("decisions.jsonl", True)
+    summary["no_trade_reasons"] = {
+        d: dict(Counter(r.get("status") or ("MODEL_NO_PROPOSALS" if not r.get("model_output", {}).get("trades") else "LEGACY_UNSPECIFIED")
+                        for r in decisions if r.get("date") == d))
+        for d in summary["no_trade_dates"]}
     # Store sanitized outputs under existing committed results directory.
     RESULTS_ROOT.joinpath("v13_summary.json").write_text(json.dumps(summary, indent=2)+"\n")
     RESULTS_ROOT.joinpath("v13_sessions.jsonl").write_text("".join(
@@ -286,6 +302,18 @@ def _v13_report():
                 d in matched and matched[d].get(key) for d in dates):
             base=float(prior[-1][key])
             curves[label]=[0.0]+[100*(float(matched[r["date"]][key])/base-1) for r in sessions]
+    main_trades = [fee_adjusted_trade(t) for t in _rows(RUN_ROOT / "trade_log.csv")]
+    if prior and all(d in matched for d in dates):
+        first = sessions[0]["date"]
+        base = 1000 + sum(float(t["net_pnl_usd"]) for t in main_trades if t["session_date"] < first)
+        if base > 0:
+            curves.pop("Main simulator gross", None)
+            curves["V1.2 net"] = [0.0]+[100*sum(float(t["net_pnl_usd"]) for t in main_trades
+                if first <= t["session_date"] <= r["date"])/base for r in sessions]
+            summary["v12_matched_starting_equity"] = base
+            summary["v12_matched_ending_equity"] = base*(1+curves["V1.2 net"][-1]/100)
+            summary["v12_matched_net_return_pct"] = curves["V1.2 net"][-1]
+    RESULTS_ROOT.joinpath("v13_summary.json").write_text(json.dumps(summary, indent=2)+"\n")
     low=min(min(v) for v in curves.values())-0.1
     high=max(max(v) for v in curves.values())+0.1
     colors=["#2563eb","#16a34a","#d97706","#9333ea"]
@@ -313,8 +341,11 @@ def _v13_report():
         f"| Closed trades | {len(trades)} |",f"| Win rate | {win:.2f}% |",
         f"| Session-end drawdown | {dd:.2f}% |",
         f"| No-trade dates | {', '.join(summary['no_trade_dates']) or 'None'} |",
+        f"| V1.3 freshness | {summary['freshness']} |",
+        f"| Sampled intraday risk sessions | {len(summary['sampled_intraday_risk'])} |",
+        "", "[Detailed risk and no-trade reason summary](docs/results/v13_summary.json)",
         "", "Counts use closed trades rather than the historical entry counter. Intraday drawdown is unavailable.",
-        "The main simulator curve is gross; V1.3 is net. Missing benchmark dates are not interpolated.",
+        "Both strategy curves use modeled fees when the matched-period main trade history is available. Missing benchmark dates are not interpolated.",
         "", "![Matched-period strategy comparison](docs/results/v13_comparison.svg)",
         "", "[Completed sessions](docs/results/v13_sessions.jsonl) · [Trade records](docs/results/v13_trades.jsonl)",
         "<!-- V13_REPORT_END -->"])
