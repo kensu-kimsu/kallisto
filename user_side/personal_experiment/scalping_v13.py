@@ -145,7 +145,6 @@ def main():
         position = open_simulated_trade(state=state, proposal=proposal, candidate=mapping[proposal["ticker"]],
             now_et=now, current_equity=equity, config=CONFIG, risk_equity=equity)
         if position:
-            state["v12_entries_today"] += 1
             opened.append(proposal["ticker"])
     log(DECISIONS, {"date": day, "time": now.isoformat(), "candidates": len(candidates),
                     "proposals": proposals, "opened": opened, "model_output": response,
