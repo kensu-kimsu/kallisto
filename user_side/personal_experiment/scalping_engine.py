@@ -46,35 +46,39 @@ def stop_pct(universe: str, atr_pct: float) -> float:
     return min(max(float(atr_pct or 0), 0.003), 0.009)
 
 
-def open_simulated_trade(*, state: dict, proposal: dict, candidate: dict, now_et: datetime, current_equity: float, config: dict | None = None, risk_equity: float | None = None) -> dict | None:
+def open_simulated_trade(*, state: dict, proposal: dict, candidate: dict, now_et: datetime, current_equity: float, config: dict | None = None, risk_equity: float | None = None, rejection_log: list | None = None) -> dict | None:
+    def reject(reason):
+        if rejection_log is not None:
+            rejection_log.append({"ticker": proposal["ticker"], "reason": reason})
+        return None
     ticker = proposal["ticker"]
     v12 = (config or {}).get("version") in {"V1.2", "V1.3"}
     if v12:
         if state.get("paused") or state.get("v12_target_hit_session") == str(now_et.date()):
-            return None
+            return reject("if state.get(\"paused\") or state.get(\"v12_target_hit_session\") == str(now_et.date())")
         if candidate.get("universe") == "microcap" and not bool(_cfg(config, "allow_microcap_entries", False)):
-            return None
+            return reject("if candidate.get(\"universe\") == \"microcap\" and not bool(_cfg(config, \"allow_microcap_entries\", False))")
         if int(state.get("v12_entries_today", 0)) >= int(_cfg(config, "max_trades_per_day", 2)):
-            return None
+            return reject("if int(state.get(\"v12_entries_today\", 0)) >= int(_cfg(config, \"max_trades_per_day\", 2))")
         if ticker in state.get("v12_tickers_traded_today", []):
-            return None
+            return reject("if ticker in state.get(\"v12_tickers_traded_today\", [])")
         if float(proposal.get("confidence", 0)) < float(_cfg(config, "min_confidence", 0.72)):
-            return None
+            return reject("if float(proposal.get(\"confidence\", 0)) < float(_cfg(config, \"min_confidence\", 0.72))")
     if ticker in state["positions"]:
-        return None
+        return reject("if ticker in state[\"positions\"]")
     if len(state.get("positions", {})) >= int(_cfg(config, "max_open_positions", MAX_OPEN_POSITIONS)):
-        return None
+        return reject("if len(state.get(\"positions\", {})) >= int(_cfg(config, \"max_open_positions\", MAX_OPEN_POSITIONS))")
     if current_equity <= float(state["session_start_equity"]) * (1 - DAILY_LOSS_LIMIT_PCT):
         state["paused"] = True
-        return None
+        return reject("state[\"paused\"] = True")
     if current_equity <= float(state["high_water_mark"]) * (1 - PORTFOLIO_DRAWDOWN_PAUSE_PCT):
         state["paused"] = True
-        return None
+        return reject("state[\"paused\"] = True")
 
     tech = candidate.get("technical") or {}
     raw_price = float(tech.get("price") or 0)
     if raw_price <= 0:
-        return None
+        return reject("if raw_price <= 0")
     universe = candidate["universe"]
     stop_distance = stop_pct(universe, float(tech.get("atr_pct") or 0))
     min_target = float(_cfg(config, "microcap_min_target_pct" if universe == "microcap" else "titan_min_target_pct", MIN_TARGET_BY_UNIVERSE.get(universe, 0.005)))
@@ -93,13 +97,13 @@ def open_simulated_trade(*, state: dict, proposal: dict, candidate: dict, now_et
 
     per_share_risk = abs(entry - stop)
     if per_share_risk <= 0:
-        return None
+        return reject("if per_share_risk <= 0")
 
     gross = sum(int(pos["shares"]) * float(pos["entry_price"]) for pos in state["positions"].values())
     open_risk = sum(int(pos["shares"]) * abs(float(pos["entry_price"]) - float(pos["stop_price"])) for pos in state["positions"].values())
     sizing_equity = min(current_equity, float(risk_equity)) if v12 and risk_equity is not None else current_equity
     if sizing_equity <= 0:
-        return None
+        return reject("if sizing_equity <= 0")
     risk_per_trade = float(_cfg(config, "risk_per_trade_pct", RISK_PER_TRADE_PCT))
     max_open_risk = float(_cfg(config, "max_open_risk_pct", MAX_OPEN_RISK_PCT))
     max_gross = float(_cfg(config, "max_gross_exposure_pct", MAX_GROSS_EXPOSURE_PCT))
@@ -114,7 +118,7 @@ def open_simulated_trade(*, state: dict, proposal: dict, candidate: dict, now_et
     shares_by_notional = int(notional_capacity / entry)
     shares = min(shares_by_trade_risk, shares_by_open_risk, shares_by_notional)
     if shares < 1:
-        return None
+        return reject("if shares < 1")
 
     # Fee-aware viability gate. Kallisto should not take a scalp where the target
     # is mostly consumed by the intended broker's round-trip transaction costs.
@@ -130,11 +134,11 @@ def open_simulated_trade(*, state: dict, proposal: dict, candidate: dict, now_et
     fee_multiple = float(_cfg(config, "fee_gate_min_gross_to_fees", FEE_GATE_MIN_GROSS_TO_FEES))
     min_net_profit_pct = float(_cfg(config, "fee_gate_min_net_profit_pct", FEE_GATE_MIN_NET_PROFIT_PCT))
     if expected_gross_profit < estimated_fees * fee_multiple:
-        return None
+        return reject("if expected_gross_profit < estimated_fees * fee_multiple")
     if expected_net_profit < sizing_equity * min_net_profit_pct:
-        return None
+        return reject("if expected_net_profit < sizing_equity * min_net_profit_pct")
     if v12 and expected_net_profit < shares * per_share_risk * float(_cfg(config, "fee_gate_min_net_to_risk", 1.25)):
-        return None
+        return reject("if v12 and expected_net_profit < shares * per_share_risk * float(_cfg(config, \"fee_gate_min_net_to_risk\", 1.25))")
 
     reserved_capital = shares * entry
     state["cash"] = float(state["cash"]) - reserved_capital
