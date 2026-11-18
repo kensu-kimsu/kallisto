@@ -229,9 +229,107 @@ def _update_readme() -> None:
     README.write_text(text, encoding="utf-8")
 
 
+
+def _v13_report():
+    # Publish only allowlisted completed-session and trade fields.
+    import html
+    from azure.core.exceptions import ResourceNotFoundError
+    container = BlobServiceClient.from_connection_string(
+        os.environ["AZURE_STORAGE_CONNECTION_STRING"]).get_container_client(CONTAINER)
+    def records(name, optional=False):
+        try:
+            raw = container.get_blob_client("v13/" + name).download_blob().readall()
+        except ResourceNotFoundError:
+            if optional:
+                return []
+            raise
+        return [json.loads(line) for line in raw.decode("utf-8").splitlines() if line.strip()]
+    sessions = sorted({r["date"]: r for r in records("sessions.jsonl")
+                       if r.get("completed") is True and r.get("version") == "V1.3"}.values(),
+                      key=lambda r: r["date"])
+    if not sessions:
+        raise RuntimeError("No completed V1.3 sessions")
+    dates = {r["date"] for r in sessions}
+    trades = [r for r in records("trades.jsonl", True) if r["date"] in dates]
+    daily = _rows(RUN_ROOT / "daily_performance.csv")
+    start, end = float(sessions[0]["starting_equity"]), float(sessions[-1]["ending_equity"])
+    fees = sum(float(t["fees"]) for t in trades)
+    gross = sum(float(t["gross_pnl"]) for t in trades)
+    peak = start
+    dd = 0.0
+    series = [0.0]
+    for r in sessions:
+        equity = float(r["ending_equity"])
+        peak = max(peak, equity)
+        dd = max(dd, 100 * (peak-equity)/peak)
+        series.append(100*(equity/start-1))
+    summary = dict(version="V1.3", completed_sessions=len(sessions), first_date=sessions[0]["date"],
+                   last_date=sessions[-1]["date"], starting_equity=start, ending_equity=end,
+                   gross_pnl=gross, fees=fees, net_pnl=end-start, trades=len(trades),
+                   wins=sum(float(t["net_pnl"])>0 for t in trades), session_end_drawdown_pct=dd,
+                   no_trade_dates=sorted(dates-{t["date"] for t in trades}))
+    # Store sanitized outputs under existing committed results directory.
+    RESULTS_ROOT.joinpath("v13_summary.json").write_text(json.dumps(summary, indent=2)+"\n")
+    RESULTS_ROOT.joinpath("v13_sessions.jsonl").write_text("".join(
+        json.dumps({k:r[k] for k in ("date","version","starting_equity","ending_equity","completed")})
+        +"\n" for r in sessions))
+    RESULTS_ROOT.joinpath("v13_trades.jsonl").write_text("".join(
+        json.dumps({k:t[k] for k in ("date","ticker","gross_pnl","fees","net_pnl","reason")})
+        +"\n" for t in trades))
+    # Matched period benchmark series, rebased to the preceding available close.
+    prior = [r for r in daily if r["date"] < sessions[0]["date"]]
+    matched = {r["date"]:r for r in daily}
+    curves = {"V1.3 net": series}
+    for key,label in [("sp500_normalized","S&P 500"),("nasdaq100_normalized","Nasdaq-100"),
+                      ("ending_equity","Main simulator gross")]:
+        if prior and float(prior[-1].get(key) or 0)>0 and all(
+                d in matched and matched[d].get(key) for d in dates):
+            base=float(prior[-1][key])
+            curves[label]=[0.0]+[100*(float(matched[r["date"]][key])/base-1) for r in sessions]
+    low=min(min(v) for v in curves.values())-0.1
+    high=max(max(v) for v in curves.values())+0.1
+    colors=["#2563eb","#16a34a","#d97706","#9333ea"]
+    svg=['<svg xmlns="http://www.w3.org/2000/svg" width="800" height="340" viewBox="0 0 800 340">',
+         '<rect width="800" height="340" fill="white"/>',
+         '<text x="40" y="25" font-size="16">Matched-period return (%)</text>']
+    for i in range(5):
+        val=low+(high-low)*i/4
+        y=270-220*i/4
+        svg.append(f'<path d="M65 {y} H770" stroke="#ddd"/><text x="5" y="{y+4}" font-size="12">{val:.2f}%</text>')
+    for i,(label,values) in enumerate(curves.items()):
+        points=" ".join(f"{65+705*j/(len(values)-1):.1f},{270-220*(v-low)/(high-low):.1f}" for j,v in enumerate(values))
+        svg.append(f'<polyline points="{points}" fill="none" stroke="{colors[i]}" stroke-width="2.5"/>')
+        svg.append(f'<text x="{30+i*190}" y="320" font-size="12" fill="{colors[i]}">{html.escape(label)}</text>')
+    svg.append('</svg>')
+    RESULTS_ROOT.joinpath("v13_comparison.svg").write_text("".join(svg))
+    win=100*summary["wins"]/len(trades) if trades else 0
+    block="\n".join([
+        "<!-- V13_REPORT_START -->","## Kallisto V1.3 — independent paper experiment",
+        "",f"Completed NYSE sessions: **{len(sessions)}/10** (latest: {summary['last_date']}).",
+        "", "| Metric | V1.3 |","|---|---:|",
+        f"| Starting equity | ${start:,.2f} |",f"| Ending equity | ${end:,.2f} |",
+        f"| Net P/L | ${end-start:,.2f} |",f"| Net return | {100*(end/start-1):.2f}% |",
+        f"| Gross P/L | ${gross:,.2f} |",f"| Fees | ${fees:,.2f} |",
+        f"| Closed trades | {len(trades)} |",f"| Win rate | {win:.2f}% |",
+        f"| Session-end drawdown | {dd:.2f}% |",
+        f"| No-trade dates | {', '.join(summary['no_trade_dates']) or 'None'} |",
+        "", "Counts use closed trades rather than the historical entry counter. Intraday drawdown is unavailable.",
+        "The main simulator curve is gross; V1.3 is net. Missing benchmark dates are not interpolated.",
+        "", "![Matched-period strategy comparison](docs/results/v13_comparison.svg)",
+        "", "[Completed sessions](docs/results/v13_sessions.jsonl) · [Trade records](docs/results/v13_trades.jsonl)",
+        "<!-- V13_REPORT_END -->"])
+    text=README.read_text(encoding="utf-8")
+    if "<!-- V13_REPORT_START -->" in text:
+        text=_replace_block(text,"<!-- V13_REPORT_START -->","<!-- V13_REPORT_END -->",block)
+    else:
+        text+="\n\n"+block+"\n"
+    README.write_text(text, encoding="utf-8")
+
+
 def main() -> None:
     _download()
     _update_readme()
+    _v13_report()
 
 
 if __name__ == "__main__":
