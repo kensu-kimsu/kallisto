@@ -312,3 +312,30 @@ Original copyright:
 **Directions:** Long + synthetic unleveraged short  
 **Benchmark objective:** Beat S&P 500 and Nasdaq-100 over six months  
 **Duration:** 6 months
+
+
+<!-- V13_REPORT_START -->
+## Kallisto V1.3 — independent paper experiment
+
+Completed NYSE sessions: **8/10** (latest: 2026-11-17).
+
+| Metric | V1.3 |
+|---|---:|
+| Starting equity | $5,000.00 |
+| Ending equity | $4,985.28 |
+| Net P/L | $-14.72 |
+| Net return | -0.29% |
+| Gross P/L | $-2.41 |
+| Fees | $12.31 |
+| Closed trades | 6 |
+| Win rate | 16.67% |
+| Session-end drawdown | 1.04% |
+| No-trade dates | 2026-11-12, 2026-11-13 |
+
+Counts use closed trades rather than the historical entry counter. Intraday drawdown is unavailable.
+The main simulator curve is gross; V1.3 is net. Missing benchmark dates are not interpolated.
+
+![Matched-period strategy comparison](docs/results/v13_comparison.svg)
+
+[Completed sessions](docs/results/v13_sessions.jsonl) · [Trade records](docs/results/v13_trades.jsonl)
+<!-- V13_REPORT_END -->

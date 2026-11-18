@@ -1,0 +1,18 @@
+{
+  "version": "V1.3",
+  "completed_sessions": 8,
+  "first_date": "2026-11-06",
+  "last_date": "2026-11-17",
+  "starting_equity": 5000.0,
+  "ending_equity": 4985.275555366055,
+  "gross_pnl": -2.409658207031498,
+  "fees": 12.314786146912736,
+  "net_pnl": -14.724444633944586,
+  "trades": 6,
+  "wins": 1,
+  "session_end_drawdown_pct": 1.0449638610449439,
+  "no_trade_dates": [
+    "2026-11-12",
+    "2026-11-13"
+  ]
+}

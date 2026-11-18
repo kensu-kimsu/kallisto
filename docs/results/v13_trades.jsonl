@@ -1,0 +1,6 @@
+{"date": "2026-11-06", "ticker": "TSLA", "gross_pnl": 0.0, "fees": 2.0602609093560003, "net_pnl": -2.0602609093560003, "reason": "STOP"}
+{"date": "2026-11-09", "ticker": "AAPL", "gross_pnl": -6.448680000000195, "fees": 2.0593158450924003, "net_pnl": -8.507995845092594, "reason": "STOP"}
+{"date": "2026-11-10", "ticker": "AVGO", "gross_pnl": -16.707677999999873, "fees": 2.0568122782704004, "net_pnl": -18.764490278270273, "reason": "STOP"}
+{"date": "2026-11-11", "ticker": "TSLA", "gross_pnl": -4.392242207031245, "fees": 2.050515179748535, "net_pnl": -6.44275738677978, "reason": "TIME_STOP"}
+{"date": "2026-11-16", "ticker": "MU", "gross_pnl": -14.4295860000002, "fees": 2.0431023527478, "net_pnl": -16.472688352748, "reason": "STOP"}
+{"date": "2026-11-17", "ticker": "AMD", "gross_pnl": 39.568528000000015, "fees": 2.0447795816975995, "net_pnl": 37.52374841830242, "reason": "TARGET"}
