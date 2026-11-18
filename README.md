@@ -331,9 +331,13 @@ Completed NYSE sessions: **8/10** (latest: 2026-11-17).
 | Win rate | 16.67% |
 | Session-end drawdown | 1.04% |
 | No-trade dates | 2026-11-12, 2026-11-13 |
+| V1.3 freshness | FRESH |
+| Sampled intraday risk sessions | 0 |
+
+[Detailed risk and no-trade reason summary](docs/results/v13_summary.json)
 
 Counts use closed trades rather than the historical entry counter. Intraday drawdown is unavailable.
-The main simulator curve is gross; V1.3 is net. Missing benchmark dates are not interpolated.
+Both strategy curves use modeled fees when the matched-period main trade history is available. Missing benchmark dates are not interpolated.
 
 ![Matched-period strategy comparison](docs/results/v13_comparison.svg)
 

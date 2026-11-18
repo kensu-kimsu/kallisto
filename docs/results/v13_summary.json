@@ -14,5 +14,19 @@
   "no_trade_dates": [
     "2026-11-12",
     "2026-11-13"
-  ]
+  ],
+  "expected_latest_session": "2026-11-17",
+  "freshness": "FRESH",
+  "sampled_intraday_risk": [],
+  "no_trade_reasons": {
+    "2026-11-12": {
+      "MODEL_NO_PROPOSALS": 18
+    },
+    "2026-11-13": {
+      "MODEL_NO_PROPOSALS": 20
+    }
+  },
+  "v12_matched_starting_equity": 677.5310999999999,
+  "v12_matched_ending_equity": 677.5310999999999,
+  "v12_matched_net_return_pct": 0.0
 }
