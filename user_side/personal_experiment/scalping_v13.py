@@ -57,6 +57,33 @@ def log(path, row):
     with path.open("a", encoding="utf-8") as f:
         f.write(json.dumps(row, default=str) + "\n")
 
+def sample_equity(state, now):
+    # Diagnostic only: do not change the risk engine high-water mark.
+    import logging
+    try:
+        prices = {}
+        for ticker in state["positions"]:
+            price = latest_price(ticker, now.date())
+            if price is None:
+                return
+            prices[ticker] = price
+        equity = mark_to_market(state, prices)
+        for ticker, pos in state["positions"].items():
+            equity -= round_trip_fees(side=pos["side"], shares=pos["shares"],
+                entry_price=pos["entry_price"], exit_price=prices[ticker])["total_fee"]
+        risk = state.get("sampled_risk", {})
+        if not risk or risk.get("date") != str(now.date()):
+            risk = {"date": str(now.date()), "high": equity, "low": equity,
+                    "max_drawdown_pct": 0.0, "samples": 0}
+        risk["high"] = max(risk["high"], equity)
+        risk["low"] = min(risk["low"], equity)
+        risk["max_drawdown_pct"] = max(risk["max_drawdown_pct"],
+            100 * (risk["high"] - equity) / risk["high"] if risk["high"] > 0 else 0)
+        risk["samples"] += 1
+        state["sampled_risk"] = risk
+    except Exception:
+        logging.exception("V1.3 diagnostic equity sample unavailable")
+
 def main():
     now = datetime.now(NY)
     if not is_nyse_session(now.date()) or not ENTRY_START <= now.time() <= __import__("datetime").time(16, 10):
@@ -101,10 +128,12 @@ def main():
             log(TRADES, {"date": day, "ticker": ticker, "gross_pnl": pnl,
                          "fees": fees, "net_pnl": pnl - fees, "reason": "FORCED_EOD_FLAT"})
             del state["positions"][ticker]
+    sample_equity(state, now)
     if now.time() >= FORCE_FLAT_TIME and not state["positions"] and state.get("session_logged") != day:
         log(ROOT / "sessions.jsonl", {"date": day, "version": "V1.3",
             "ending_equity": state["cash"], "starting_equity": state["session_start_equity"],
-            "trades": state["v12_entries_today"], "completed": True})
+            "trades": state["v12_entries_today"], "completed": True,
+            "sampled_risk": state.get("sampled_risk")})
         state["session_logged"] = day
     if now.time() >= NEW_ENTRY_CUTOFF or state["positions"] or state["paused"]:
         save(state)
@@ -126,29 +155,36 @@ def main():
         now.date(), leaders_per_universe=12, titan_only=True,
         max_share_price=max(0, budget / 1.001))
     candidates = []
+    screening_rejections = []
     for row in leaders:
         tech = technical_snapshot(row["ticker"], now.date())
         if tech and 5 <= tech["price"] <= budget / 1.001:
             candidates.append({**row, "technical": tech})
+        else:
+            screening_rejections.append({"ticker": row["ticker"], "reason": "NO_TECHNICAL_DATA" if not tech else "PRICE_OUTSIDE_BUDGET"})
     state["last_decision_et"] = now.isoformat()
     if not candidates:
-        log(DECISIONS, {"date": day, "status": "NO_CANDIDATES", "diagnostics": diagnostics})
+        log(DECISIONS, {"date": day, "status": "NO_CANDIDATES", "screening_rejections": screening_rejections, "diagnostics": diagnostics})
         save(state)
         return
     response, tokens = call_model(build_prompt(state, candidates, now, CONFIG, "Kallisto V1.3 $5k Paper"), now)
     mapping = {c["ticker"]: c for c in candidates}
     proposals = validate_proposals(response, set(mapping), CONFIG, mapping)
     opened = []
+    execution_rejections = []
     for proposal in proposals:
         if state["positions"] or state["v12_entries_today"] >= CONFIG["max_trades_per_day"]:
             break
         position = open_simulated_trade(state=state, proposal=proposal, candidate=mapping[proposal["ticker"]],
-            now_et=now, current_equity=equity, config=CONFIG, risk_equity=equity)
+            now_et=now, current_equity=equity, config=CONFIG, risk_equity=equity, rejection_log=execution_rejections)
         if position:
             opened.append(proposal["ticker"])
     log(DECISIONS, {"date": day, "time": now.isoformat(), "candidates": len(candidates),
                     "proposals": proposals, "opened": opened, "model_output": response,
-                    "tokens": tokens, "diagnostics": diagnostics})
+                    "tokens": tokens, "diagnostics": diagnostics,
+                    "screening_rejections": screening_rejections,
+                    "execution_rejections": execution_rejections,
+                    "status": "OPENED" if opened else "EXECUTION_REJECTED" if proposals else "VALIDATION_REJECTED" if response.get("trades") else "MODEL_NO_PROPOSALS"})
     save(state)
 
 if __name__ == "__main__":
