@@ -1,21 +1,21 @@
 {
   "version": "V1.3",
-  "completed_sessions": 9,
+  "completed_sessions": 10,
   "first_date": "2026-11-06",
-  "last_date": "2026-11-18",
+  "last_date": "2026-11-19",
   "starting_equity": 5000.0,
-  "ending_equity": 4961.315218553342,
-  "gross_pnl": -22.195789983398328,
-  "fees": 16.488990683259743,
-  "net_pnl": -38.684781446658235,
-  "trades": 8,
+  "ending_equity": 4937.5873873383225,
+  "gross_pnl": -41.70013998339839,
+  "fees": 20.71247189827974,
+  "net_pnl": -62.412612661677485,
+  "trades": 10,
   "wins": 1,
-  "session_end_drawdown_pct": 1.0449638610449439,
+  "session_end_drawdown_pct": 1.2482522532335496,
   "no_trade_dates": [
     "2026-11-12",
     "2026-11-13"
   ],
-  "expected_latest_session": "2026-11-18",
+  "expected_latest_session": "2026-11-19",
   "freshness": "FRESH",
   "sampled_intraday_risk": [
     {
@@ -23,6 +23,13 @@
       "high": 4985.275555366055,
       "low": 4961.315211553341,
       "max_drawdown_pct": 0.48062225541221576,
+      "samples": 76
+    },
+    {
+      "date": "2026-11-19",
+      "high": 4986.169533209884,
+      "low": 4937.5873873383225,
+      "max_drawdown_pct": 0.9743380273772336,
       "samples": 76
     }
   ],

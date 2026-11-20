@@ -127,7 +127,7 @@ The frozen `V1.0` risk replay provides a low-cost counterfactual control using t
 | Metric | Current value |
 |---|---:|
 | Strategy version | **V1.2** |
-| Completed sessions | 27 |
+| Completed sessions | 28 |
 | Completed trades | 104 |
 | **Kallisto net equity after modeled Moomoo AU fees** | **$677.53** |
 | **Kallisto net cumulative return** | **-32.25%** |
@@ -138,8 +138,8 @@ The frozen `V1.0` risk replay provides a low-cost counterfactual control using t
 | Frozen V1.0 risk-replay equity | $732.68 |
 | Frozen V1.0 risk-replay return | -26.73% |
 | Gross simulator vs frozen V1.0 risk replay | 33.47% |
-| S&P 500 return from experiment base | -6.34% |
-| Nasdaq-100 return from experiment base | -11.36% |
+| S&P 500 return from experiment base | -7.83% |
+| Nasdaq-100 return from experiment base | -12.68% |
 
 ### Fee treatment
 
@@ -252,10 +252,10 @@ Every paid trading-decision call and weekly evaluator call records token usage a
 <!-- API_COST_SUMMARY_START -->
 | Cost period | API cost (USD) | API calls | Input tokens | Output tokens |
 |---|---:|---:|---:|---:|
-| Average daily | $0.0314 | 22.1 | 132,258 | 4,146 |
-| Average weekly | $0.1412 | 99.5 | 595,160 | 18,658 |
-| Average monthly | $0.4237 | 298.5 | 1,785,479 | 55,974 |
-| **Total actual** | **$0.8473** | **597** | **3,570,958** | **111,947** |
+| Average daily | $0.0310 | 22.0 | 130,556 | 4,110 |
+| Average weekly | $0.1447 | 102.8 | 609,261 | 19,182 |
+| Average monthly | $0.4340 | 308.5 | 1,827,784 | 57,546 |
+| **Total actual** | **$0.8680** | **617** | **3,655,567** | **115,093** |
 <!-- API_COST_SUMMARY_END -->
 
 OpenAI billing remains the source of truth for actual API charges.
@@ -317,22 +317,22 @@ Original copyright:
 <!-- V13_REPORT_START -->
 ## Kallisto V1.3 — independent paper experiment
 
-Completed NYSE sessions: **9/10** (latest: 2026-11-18).
+Completed NYSE sessions: **10/10** (latest: 2026-11-19).
 
 | Metric | V1.3 |
 |---|---:|
 | Starting equity | $5,000.00 |
-| Ending equity | $4,961.32 |
-| Net P/L | $-38.68 |
-| Net return | -0.77% |
-| Gross P/L | $-22.20 |
-| Fees | $16.49 |
-| Closed trades | 8 |
-| Win rate | 12.50% |
-| Session-end drawdown | 1.04% |
+| Ending equity | $4,937.59 |
+| Net P/L | $-62.41 |
+| Net return | -1.25% |
+| Gross P/L | $-41.70 |
+| Fees | $20.71 |
+| Closed trades | 10 |
+| Win rate | 10.00% |
+| Session-end drawdown | 1.25% |
 | No-trade dates | 2026-11-12, 2026-11-13 |
 | V1.3 freshness | FRESH |
-| Sampled intraday risk sessions | 1 |
+| Sampled intraday risk sessions | 2 |
 
 [Detailed risk and no-trade reason summary](docs/results/v13_summary.json)
 
