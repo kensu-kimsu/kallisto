@@ -67,6 +67,28 @@ New entries stop at **+1% realized net daily P/L**, **-1.5% fee-adjusted daily l
 
 See [five-session review and V1.2 rationale](docs/research/kallisto_v1_1_five_session_review_2026-10-30.md).
 
+## Kallisto V1.4 research arm (forward-only, paper trading)
+
+V1.4 runs **alongside the unchanged V1.3 control** with a **separate $5,000 simulated portfolio**, separate Azure Blob prefix (`v14/`), and no broker orders. It begins from its first post-deployment NYSE session; historical V1.3 trades are **not backfilled**.
+
+Changes based on the 12-trade V1.3 diagnostic review:
+- Correct the model prompt to state V1.4's **$5,000** starting capital and explicitly communicate two-trade/day, one-position, Titan-only, fee-aware discipline.
+- Preserve V1.3's 0.5% per-trade risk, 1% open risk, 45% position cap, 30% cash reserve, 60-minute maximum hold and 2% minimum Titan target.
+- Add a pre-entry reachability gate: reject proposals whose required target exceeds **2.5× the available ATR percentage**. Missing ATR does not trigger an invented estimate. This is a hypothesis to test, not a proven profitable filter.
+- Move V1.4 breakeven stops to cover **estimated round-trip fees**, once the original 1R favorable move has been reached. V1.3's stop behavior remains unchanged.
+- Update the V1.4-local high-water mark for the existing 10% portfolio drawdown pause.
+- Log entry and exit prices/times, shares, side, initial stop, target, confidence, rationale and entry-time technical evidence in **private Azure records**. Publish only selected non-sensitive fields.
+- Report V1.4 net returns, trades, win rate, stop reasons, rejection counts, sampled risk, freshness and **matched NYSE-date V1.3 comparison** in the automatically refreshed README and `docs/results/v14_summary.json`. Benchmarks are shown only when matching source data exists.
+
+**Evaluation rule:** Do not claim improvement from a single profitable trade. Compare V1.4 and V1.3 over the same completed dates, using net fee-adjusted percentage returns, drawdowns, number of trades, win rate and benchmark context. Keep both simulation-only.
+
+<!-- V14_REPORT_START -->
+## Kallisto V1.4 — independent research experiment
+
+**Awaiting first completed NYSE session.** Starting paper capital: **$5,000.00 USD**. Automatic results will appear here after the dashboard refresh.
+
+<!-- V14_REPORT_END -->
+
 ## Adaptive self-learning loop
 
 Kallisto has a bounded self-evaluation layer. It does **not** retrain GPT weights. Instead, it learns by measuring its completed trades and market-relative performance, then allowing the evaluator to update a small allow-list of strategy parameters and prompt guidance within hard-coded safety ranges.
