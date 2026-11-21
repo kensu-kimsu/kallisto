@@ -361,6 +361,9 @@ def main() -> None:
     _download()
     _update_readme()
     _v13_report()
+    from tools.report_v14 import render
+    container = BlobServiceClient.from_connection_string(os.environ["AZURE_STORAGE_CONNECTION_STRING"]).get_container_client(CONTAINER)
+    render(container, RESULTS_ROOT, README, _rows(RUN_ROOT / "daily_performance.csv"))
 
 
 if __name__ == "__main__":
