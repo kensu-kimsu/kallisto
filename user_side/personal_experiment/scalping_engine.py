@@ -52,7 +52,7 @@ def open_simulated_trade(*, state: dict, proposal: dict, candidate: dict, now_et
             rejection_log.append({"ticker": proposal["ticker"], "reason": reason})
         return None
     ticker = proposal["ticker"]
-    v12 = (config or {}).get("version") in {"V1.2", "V1.3"}
+    v12 = (config or {}).get("version") in {"V1.2", "V1.3", "V1.4"}
     if v12:
         if state.get("paused") or state.get("v12_target_hit_session") == str(now_et.date()):
             return reject("if state.get(\"paused\") or state.get(\"v12_target_hit_session\") == str(now_et.date())")
@@ -202,8 +202,26 @@ def evaluate_bar(pos: dict, bar, bar_time: datetime | None = None, config: dict 
     if one_r > 0 and not pos.get("breakeven_armed"):
         if pos["side"] == "LONG" and close >= float(pos["entry_price"]) + one_r:
             pos["stop_price"] = round(float(pos["entry_price"]), 6)
+            if _cfg(config, "fee_adjusted_breakeven", False):
+                entry = float(pos["entry_price"])
+                shares = int(pos["shares"])
+                # Estimate fees at the proposed exit and move the stop only
+                # after 1R favorable movement; V1.2/V1.3 remain unchanged.
+                fee = round_trip_fees(side=pos["side"], shares=shares,
+                    entry_price=entry, exit_price=entry)["total_fee"]
+                fee_per_share = float(fee) / shares if shares else 0
+                pos["stop_price"] = round(entry + (fee_per_share if pos["side"] == "LONG" else -fee_per_share), 6)
             pos["breakeven_armed"] = True
         elif pos["side"] == "SHORT" and close <= float(pos["entry_price"]) - one_r:
             pos["stop_price"] = round(float(pos["entry_price"]), 6)
+            if _cfg(config, "fee_adjusted_breakeven", False):
+                entry = float(pos["entry_price"])
+                shares = int(pos["shares"])
+                # Estimate fees at the proposed exit and move the stop only
+                # after 1R favorable movement; V1.2/V1.3 remain unchanged.
+                fee = round_trip_fees(side=pos["side"], shares=shares,
+                    entry_price=entry, exit_price=entry)["total_fee"]
+                fee_per_share = float(fee) / shares if shares else 0
+                pos["stop_price"] = round(entry + (fee_per_share if pos["side"] == "LONG" else -fee_per_share), 6)
             pos["breakeven_armed"] = True
     return None
