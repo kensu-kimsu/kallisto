@@ -1,0 +1,223 @@
+"""Kallisto V1.4 isolated $5,000 paper-trading experiment.
+
+Run with: python -m user_side.personal_experiment.scalping_v14
+Never writes to the V1/V1.2 state or results. No live orders.
+"""
+from __future__ import annotations
+
+import csv
+import json
+import os
+from datetime import datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+from user_side.personal_experiment.scalping_v1 import (
+    NY, ENTRY_START, NEW_ENTRY_CUTOFF, FORCE_FLAT_TIME,
+    is_nyse_session, scan_premarket_with_diagnostics, technical_snapshot,
+)
+from user_side.personal_experiment.scalping_strategy import build_prompt, call_model, validate_proposals
+from user_side.personal_experiment.scalping_engine import open_simulated_trade, evaluate_bar, mark_to_market
+from user_side.personal_experiment.scalping_market_data import session_bars, latest_price
+from user_side.personal_experiment.scalping_fees import round_trip_fees
+
+ROOT = Path(os.environ.get("SCALPING_V14_RUN_ROOT", str(Path(__file__).resolve().parents[2] / "user_side" / "runs" / "scalping_v14")))
+STATE_FILE = ROOT / "state.json"
+DECISIONS = ROOT / "decisions.jsonl"
+TRADES = ROOT / "trades.jsonl"
+INITIAL_CAPITAL = 5000.0
+CONFIG = {
+    "version": "V1.4", "min_confidence": 0.72,
+    "risk_per_trade_pct": 0.005, "max_open_risk_pct": 0.01,
+    "max_gross_exposure_pct": 0.50, "max_position_pct": 0.45,
+    "min_cash_reserve_pct": 0.30, "reward_to_risk_floor": 2.0,
+    "max_open_positions": 1, "max_hold_minutes": 60,
+    "titan_min_target_pct": 0.02, "fee_gate_min_gross_to_fees": 3.0,
+    "fee_gate_min_net_profit_pct": 0.005, "fee_gate_min_net_to_risk": 1.25,
+    "max_trades_per_day": 2, "allow_microcap_entries": False,
+    "fee_adjusted_breakeven": True, "reachability_atr_multiple": 2.5,
+}
+# This module is an isolated research configuration, not a live broker client.
+def initial_state():
+    return {"cash": INITIAL_CAPITAL, "positions": {}, "session_date": None,
+            "session_start_equity": INITIAL_CAPITAL, "high_water_mark": INITIAL_CAPITAL,
+            "paused": False, "v12_entries_today": 0,
+            "v12_tickers_traded_today": [], "v12_target_hit_session": None}
+
+def load():
+    ROOT.mkdir(parents=True, exist_ok=True)
+    return json.loads(STATE_FILE.read_text()) if STATE_FILE.exists() else initial_state()
+
+def save(state):
+    ROOT.mkdir(parents=True, exist_ok=True)
+    tmp = STATE_FILE.with_suffix(".tmp")
+    tmp.write_text(json.dumps(state, indent=2, default=str))
+    tmp.replace(STATE_FILE)
+
+def log(path, row):
+    with path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(row, default=str) + "\n")
+
+def sample_equity(state, now):
+    # Diagnostic only: do not change the risk engine high-water mark.
+    import logging
+    try:
+        prices = {}
+        for ticker in state["positions"]:
+            price = latest_price(ticker, now.date())
+            if price is None:
+                return
+            prices[ticker] = price
+        equity = mark_to_market(state, prices)
+        for ticker, pos in state["positions"].items():
+            equity -= round_trip_fees(side=pos["side"], shares=pos["shares"],
+                entry_price=pos["entry_price"], exit_price=prices[ticker])["total_fee"]
+        risk = state.get("sampled_risk", {})
+        if not risk or risk.get("date") != str(now.date()):
+            risk = {"date": str(now.date()), "high": equity, "low": equity,
+                    "max_drawdown_pct": 0.0, "samples": 0}
+        risk["high"] = max(risk["high"], equity)
+        risk["low"] = min(risk["low"], equity)
+        risk["max_drawdown_pct"] = max(risk["max_drawdown_pct"],
+            100 * (risk["high"] - equity) / risk["high"] if risk["high"] > 0 else 0)
+        risk["samples"] += 1
+        state["sampled_risk"] = risk
+    except Exception:
+        logging.exception("V1.4 diagnostic equity sample unavailable")
+
+def main():
+    now = datetime.now(NY)
+    if not is_nyse_session(now.date()) or not ENTRY_START <= now.time() <= __import__("datetime").time(16, 10):
+        return
+    state = load()
+    day = str(now.date())
+    if state["session_date"] != day:
+        if state["positions"]:
+            raise RuntimeError("Unclosed position from previous session")
+        state.update(session_date=day, session_start_equity=state["cash"],
+                     paused=False, v12_entries_today=0,
+                     v12_tickers_traded_today=[], v12_target_hit_session=None,
+                     last_decision_et=None)
+    # Positions are monitored and closed using the same bar-based simulation rules.
+    for ticker in list(state["positions"]):
+        pos = state["positions"][ticker]
+        bars = session_bars(ticker, now.date())
+        opened = datetime.fromisoformat(pos["opened_at"])
+        for ts, bar in bars.loc[(bars.index > opened) & (bars.index <= now)].iterrows():
+            outcome = evaluate_bar(pos, bar, ts.to_pydatetime(), CONFIG)
+            if outcome:
+                exit_price, reason = outcome
+                shares = int(pos["shares"])
+                gross_pnl = shares * (exit_price - pos["entry_price"]) * (1 if pos["side"] == "LONG" else -1)
+                fees = round_trip_fees(side=pos["side"], shares=shares,
+                    entry_price=pos["entry_price"], exit_price=exit_price)["total_fee"]
+                state["cash"] += pos["reserved_capital"] + gross_pnl - fees
+                log(TRADES, {"date": day, "ticker": ticker, "entry_time": pos["opened_at"],
+                             "exit_time": ts.isoformat(), "entry_price": pos["entry_price"],
+                             "exit_price": exit_price, "shares": shares, "side": pos["side"],
+                             "stop_price": pos.get("initial_stop_price"), "target_price": pos["target_price"],
+                             "confidence": pos["confidence"], "rationale": pos["rationale"],
+                             "entry_snapshot": pos.get("entry_snapshot"),
+                             "fees": fees, "net_pnl": gross_pnl - fees, "reason": reason})
+                del state["positions"][ticker]
+                break
+    if now.time() >= FORCE_FLAT_TIME and state["positions"]:
+        for ticker, pos in list(state["positions"].items()):
+            price = latest_price(ticker, now.date())
+            if price is None:
+                raise RuntimeError("Cannot force-flat without current price: " + ticker)
+            shares = int(pos["shares"])
+            pnl = shares * (price - pos["entry_price"]) * (1 if pos["side"] == "LONG" else -1)
+            fees = round_trip_fees(side=pos["side"], shares=shares,
+                entry_price=pos["entry_price"], exit_price=price)["total_fee"]
+            state["cash"] += pos["reserved_capital"] + pnl - fees
+            log(TRADES, {"date": day, "ticker": ticker, "entry_time": pos["opened_at"],
+                         "exit_time": now.isoformat(), "entry_price": pos["entry_price"],
+                         "exit_price": price, "shares": shares, "side": pos["side"],
+                         "stop_price": pos.get("initial_stop_price"), "target_price": pos["target_price"],
+                         "confidence": pos["confidence"], "rationale": pos["rationale"],
+                         "entry_snapshot": pos.get("entry_snapshot"),
+                         "fees": fees, "net_pnl": pnl - fees, "reason": "FORCED_EOD_FLAT"})
+            del state["positions"][ticker]
+    sample_equity(state, now)
+    if now.time() >= FORCE_FLAT_TIME and not state["positions"] and state.get("session_logged") != day:
+        log(ROOT / "sessions.jsonl", {"date": day, "version": "V1.4",
+            "ending_equity": state["cash"], "starting_equity": state["session_start_equity"],
+            "trades": state["v12_entries_today"], "completed": True,
+            "sampled_risk": state.get("sampled_risk")})
+        state["session_logged"] = day
+    # Keep the drawdown peak current, without weakening the original pause limit.
+    if not state["positions"]:
+        state["high_water_mark"] = max(float(state["high_water_mark"]), float(state["cash"]))
+    if now.time() >= NEW_ENTRY_CUTOFF or state["positions"] or state["paused"]:
+        save(state)
+        return
+    if state.get("last_decision_et") and (now - datetime.fromisoformat(state["last_decision_et"])).total_seconds() < 900:
+        save(state)
+        return
+    equity = mark_to_market(state, {})
+    if state["v12_entries_today"] >= CONFIG["max_trades_per_day"]:
+        save(state)
+        return
+    if equity <= state["session_start_equity"] * 0.985 or equity <= state["high_water_mark"] * 0.90:
+        state["paused"] = True
+        save(state)
+        return
+    budget = min(equity * CONFIG["max_position_pct"], equity * CONFIG["max_gross_exposure_pct"],
+                 state["cash"] - equity * CONFIG["min_cash_reserve_pct"])
+    leaders, diagnostics = scan_premarket_with_diagnostics(
+        now.date(), leaders_per_universe=12, titan_only=True,
+        max_share_price=max(0, budget / 1.001))
+    candidates = []
+    screening_rejections = []
+    for row in leaders:
+        tech = technical_snapshot(row["ticker"], now.date())
+        if tech and 5 <= tech["price"] <= budget / 1.001:
+            candidates.append({**row, "technical": tech})
+        else:
+            screening_rejections.append({"ticker": row["ticker"], "reason": "NO_TECHNICAL_DATA" if not tech else "PRICE_OUTSIDE_BUDGET"})
+    state["last_decision_et"] = now.isoformat()
+    if not candidates:
+        log(DECISIONS, {"date": day, "status": "NO_CANDIDATES", "screening_rejections": screening_rejections, "diagnostics": diagnostics})
+        save(state)
+        return
+    response, tokens = call_model(build_prompt(state, candidates, now, CONFIG, "Kallisto V1.4 $5k Paper"), now)
+    mapping = {c["ticker"]: c for c in candidates}
+    proposals = validate_proposals(response, set(mapping), CONFIG, mapping)
+    opened = []
+    execution_rejections = []
+    reachability_rejections = []
+    for proposal in proposals:
+        if state["positions"] or state["v12_entries_today"] >= CONFIG["max_trades_per_day"]:
+            break
+        tech = mapping[proposal["ticker"]]["technical"]
+        atr_pct = float(tech.get("atr_pct") or 0)
+        required_target = max(float(proposal["target_pct"]), CONFIG["titan_min_target_pct"])
+        # Research filter: skip 60-minute setups requiring >2.5x measured ATR%.
+        # Reject only with valid ATR; never infer a missing volatility estimate.
+        if atr_pct > 0 and required_target > atr_pct * CONFIG["reachability_atr_multiple"]:
+            reachability_rejections.append({"ticker": proposal["ticker"],
+                "reason": "TARGET_EXCEEDS_ATR_REACHABILITY", "atr_pct": atr_pct,
+                "target_pct": required_target})
+            continue
+        position = open_simulated_trade(state=state, proposal=proposal, candidate=mapping[proposal["ticker"]],
+            now_et=now, current_equity=equity, config=CONFIG, risk_equity=equity, rejection_log=execution_rejections)
+        if position:
+            position["entry_snapshot"] = {"technical": tech,
+                "selection_source": mapping[proposal["ticker"]].get("selection_source"),
+                "premarket_change_pct": mapping[proposal["ticker"]].get("premarket_change_pct"),
+                "premarket_volume": mapping[proposal["ticker"]].get("premarket_volume"),
+                "decision_time": now.isoformat(), "atr_pct": atr_pct,
+                "required_target_pct": required_target}
+            opened.append(proposal["ticker"])
+    log(DECISIONS, {"date": day, "time": now.isoformat(), "candidates": len(candidates),
+                    "proposals": proposals, "opened": opened, "model_output": response,
+                    "tokens": tokens, "diagnostics": diagnostics,
+                    "screening_rejections": screening_rejections,
+                    "execution_rejections": execution_rejections,
+                    "reachability_rejections": reachability_rejections,
+                    "status": "OPENED" if opened else "EXECUTION_REJECTED" if proposals else "VALIDATION_REJECTED" if response.get("trades") else "MODEL_NO_PROPOSALS"})
+    save(state)
+
+if __name__ == "__main__":
+    main()
