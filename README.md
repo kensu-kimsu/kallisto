@@ -85,8 +85,32 @@ Changes based on the 12-trade V1.3 diagnostic review:
 <!-- V14_REPORT_START -->
 ## Kallisto V1.4 — independent research experiment
 
-**Awaiting first completed NYSE session.** Starting paper capital: **$5,000.00 USD**. Automatic results will appear here after the dashboard refresh.
+> **Simulation only.** V1.4 starts with a separate $5,000 virtual account; V1.3 remains the unchanged control. No historical V1.3 trades are copied into V1.4.
 
+| Metric | V1.4 |
+|---|---:|
+| Status | AWAITING_FIRST_COMPLETED_SESSION |
+| Completed NYSE sessions | 0 |
+| Starting capital | $5,000.00 |
+| Ending capital | $5,000.00 |
+| Net P/L after modeled fees | $0.00 |
+| Net return | 0.00% |
+| Gross P/L | $0.00 |
+| Modeled fees | $0.00 |
+| Closed trades | 0 |
+| Win rate | N/A — no closed trades |
+| Session-end drawdown | 0.00% |
+| No-trade sessions | None |
+| Freshness | PENDING |
+| V1.3 matched-session net return | Pending matched sessions |
+| V1.4 matched-session net return | Pending matched sessions |
+| Matched NYSE sessions | 0 |
+
+[Detailed V1.4 metrics, stop reasons, AI decision rejections, benchmarks and sampled drawdown](docs/results/v14_summary.json)
+
+[V1.4 completed sessions](docs/results/v14_sessions.jsonl) · [V1.4 trades](docs/results/v14_trades.jsonl)
+
+Comparisons use identical completed dates, modeled fees and percentage returns. Missing benchmark data is shown as unavailable, not invented.
 <!-- V14_REPORT_END -->
 
 ## Adaptive self-learning loop
