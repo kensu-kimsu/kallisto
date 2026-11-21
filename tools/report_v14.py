@@ -82,15 +82,15 @@ def render(container, results: Path, readme: Path, v12_daily: list[dict]) -> Non
         **benchmark,
     }
     results.mkdir(parents=True, exist_ok=True)
-    (results/"v14_summary.json").write_text(json.dumps(summary,indent=2)+"\\n")
+    (results/"v14_summary.json").write_text(json.dumps(summary,indent=2)+"\n")
     (results/"v14_sessions.jsonl").write_text("".join(json.dumps({
-        k:r.get(k) for k in ("date","version","starting_equity","ending_equity","completed")})+"\\n"
+        k:r.get(k) for k in ("date","version","starting_equity","ending_equity","completed")})+"\n"
         for r in sessions))
     # Only selected numeric and non-sensitive entry evidence is published; raw AI output stays in Azure.
     allow = ("date","ticker","side","entry_time","exit_time","entry_price","exit_price",
              "shares","stop_price","target_price","confidence","gross_pnl","fees","net_pnl","reason")
-    (results/"v14_trades.jsonl").write_text("".join(json.dumps({k:t[k] for k in allow if k in t})+"\\n" for t in trades))
-    block = "\\n".join([
+    (results/"v14_trades.jsonl").write_text("".join(json.dumps({k:t[k] for k in allow if k in t})+"\n" for t in trades))
+    block = "\n".join([
         "<!-- V14_REPORT_START -->",
         "## Kallisto V1.4 — independent research experiment",
         "",
@@ -125,5 +125,5 @@ def render(container, results: Path, readme: Path, v12_daily: list[dict]) -> Non
     if a in content and b in content:
         content = content[:content.index(a)] + block + content[content.index(b)+len(b):]
     else:
-        content += "\\n\\n"+block+"\\n"
+        content += "\n\n"+block+"\n"
     readme.write_text(content)
