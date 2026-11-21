@@ -20,18 +20,20 @@ from zoneinfo import ZoneInfo
 # point to Azure Functions' writable temporary filesystem rather than the package.
 os.environ.setdefault("SCALPING_RUN_ROOT", "/tmp/scalping_v1")
 os.environ.setdefault("SCALPING_V13_RUN_ROOT", "/tmp/scalping_v13")
+os.environ.setdefault("SCALPING_V14_RUN_ROOT", "/tmp/scalping_v14")
 os.environ.setdefault("SCALPING_OUTPUT_ROOT", "/tmp/scalping_output")
 os.environ.setdefault("SCALPING_README_PATH", "/tmp/scalping_output/README.md")
 
 import azure.functions as func
 
-from user_side.personal_experiment.azure_runtime import sync_down, sync_up, sync_v13_down, sync_v13_up
+from user_side.personal_experiment.azure_runtime import sync_down, sync_up, sync_v13_down, sync_v13_up, sync_v14_down, sync_v14_up
 from user_side.personal_experiment.broker.moomoo_shadow import (
     paper_enabled,
     run_paper_shadow_cycle,
 )
 from user_side.personal_experiment.scalping_v1 import main as run_scalping_cycle
 from user_side.personal_experiment.scalping_v13 import main as run_v13_cycle
+from user_side.personal_experiment.scalping_v14 import main as run_v14_cycle
 
 app = func.FunctionApp()
 NY = ZoneInfo("America/New_York")
@@ -78,6 +80,16 @@ def scalping_timer(timer: func.TimerRequest) -> None:
                 sync_v13_up()
         except Exception:
             logging.exception("V1.3 cycle failed; V1.2 remains unaffected.")
+
+        # V1.4 runs independently alongside the unchanged V1.3 control.
+        try:
+            sync_v14_down()
+            try:
+                run_v14_cycle()
+            finally:
+                sync_v14_up()
+        except Exception:
+            logging.exception("V1.4 cycle failed; V1.2 and V1.3 remain unaffected.")
 
         # Paper execution is optional and isolated. A Moomoo outage must never
         # corrupt or stop the simulation experiment.
