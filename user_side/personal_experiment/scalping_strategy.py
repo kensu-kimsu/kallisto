@@ -26,9 +26,9 @@ def build_prompt(state: dict, candidates: list[dict], now_et: datetime, config: 
     min_net_profit_pct = float(config.get("fee_gate_min_net_profit_pct", 0.0025))
     version = str(config.get("version", "V1.0"))
     v12_rules = ""
-    if version == "V1.2":
+    if version in {"V1.2", "V1.4"}:
         v12_rules = (
-            "V1.2: maximum two distinct entries per day and one open position. "
+            f"{version}: maximum two distinct entries per day and one open position. "
             "Microcap entries disabled. Only high-conviction liquid Titan setups. "
             "Zero trades is preferable to marginal expected value. "
             "Stop new entries at +1% realized fee-adjusted daily P/L, and respect "
@@ -48,7 +48,7 @@ You are the autonomous decision engine for the {track_name} in a SIMULATED profe
 
 Strategy version: {version}
 Current New York time: {now_et.isoformat()}
-Starting capital: $1,000 USD
+Starting capital: ${float(config.get("initial_capital", 1000.0)):,.2f} USD
 Current uncommitted cash: ${state['cash']:.2f}
 Open simulated positions: {json.dumps(state['positions'], default=str)}
 
