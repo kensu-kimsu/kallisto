@@ -91,3 +91,25 @@ def sync_v13_up() -> None:
         path = V13_ROOT / name
         if path.exists():
             container.get_blob_client("v13/" + name).upload_blob(path.read_bytes(), overwrite=True)
+
+
+# V1.4 is a separate research arm. Never read/write V1.3 or V1.2 state.
+V14_ROOT = Path(os.environ.get("SCALPING_V14_RUN_ROOT", "/tmp/scalping_v14"))
+V14_FILES = ("state.json", "decisions.jsonl", "trades.jsonl", "sessions.jsonl")
+
+def sync_v14_down() -> None:
+    V14_ROOT.mkdir(parents=True, exist_ok=True)
+    container = ensure_container()
+    for name in V14_FILES:
+        try:
+            V14_ROOT.joinpath(name).write_bytes(
+                container.get_blob_client("v14/" + name).download_blob().readall())
+        except ResourceNotFoundError:
+            pass
+
+def sync_v14_up() -> None:
+    container = ensure_container()
+    for name in V14_FILES:
+        path = V14_ROOT / name
+        if path.exists():
+            container.get_blob_client("v14/" + name).upload_blob(path.read_bytes(), overwrite=True)
