@@ -27,7 +27,7 @@ DECISIONS = ROOT / "decisions.jsonl"
 TRADES = ROOT / "trades.jsonl"
 INITIAL_CAPITAL = 5000.0
 CONFIG = {
-    "version": "V1.4", "min_confidence": 0.72,
+    "version": "V1.4", "initial_capital": 5000.0, "min_confidence": 0.72,
     "risk_per_trade_pct": 0.005, "max_open_risk_pct": 0.01,
     "max_gross_exposure_pct": 0.50, "max_position_pct": 0.45,
     "min_cash_reserve_pct": 0.30, "reward_to_risk_floor": 2.0,
