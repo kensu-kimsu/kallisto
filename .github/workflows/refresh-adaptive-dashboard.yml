@@ -8,6 +8,7 @@ on:
     paths:
       - ".github/workflows/refresh-adaptive-dashboard.yml"
       - "tools/refresh_adaptive_dashboard.py"
+      - "tools/report_v14.py"
   schedule:
     # GitHub scheduled workflows can be delayed. Retry several times after
     # the NYSE close so one delayed run does not leave the repo stale.
